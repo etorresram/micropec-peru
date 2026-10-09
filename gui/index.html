@@ -78,6 +78,7 @@ details > div { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
 .ctl input[type=range] { grid-column: 1 / 2; width: 100%; accent-color: var(--accent); margin: 0; }
 .ctl input[type=number] { grid-column: 2; grid-row: 1 / 3; align-self: center; width: 72px; font: 600 13px var(--display); padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
 .fila { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.fila.acciones { margin: 0 0 14px; }
 button { font: 600 13px var(--display); padding: 8px 13px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
 button.primario { background: var(--accent); border-color: var(--accent); color: #fff; }
 button:hover:not(:disabled) { border-color: var(--fg-2); } button.primario:hover:not(:disabled) { filter: brightness(1.06); }
@@ -140,17 +141,17 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
         </select>
         <button id="cargar">Cargar</button>
       </div>
+      <div class="fila acciones">
+        <button class="primario" id="simular" disabled>Simular</button>
+        <button id="fijar" disabled>Fijar como referencia</button>
+        <button id="reset">Volver a 2019</button>
+      </div>
       <details open><summary>Economía</summary><div id="g-macro"></div></details>
       <details><summary>Mercado laboral</summary><div id="g-laboral"></div></details>
       <details><summary>Precios y líneas de pobreza</summary><div id="g-precios"></div></details>
       <details><summary>Ingresos no laborales</summary><div id="g-nolab"></div></details>
       <details><summary>Políticas: bonos y retiros AFP</summary><div id="g-politica"></div></details>
       <details><summary>Supuestos del modelo</summary><div id="g-supuestos"></div></details>
-      <div class="fila">
-        <button class="primario" id="simular" disabled>Simular</button>
-        <button id="fijar" disabled>Fijar como referencia</button>
-        <button id="reset">Volver a 2019</button>
-      </div>
       <p class="nota">Las variaciones son acumuladas respecto de 2019. Los escenarios “observado” cargan los insumos reales de cada año (BCRP, INEI) y permiten comparar con la cifra oficial.</p>
     </aside>
 
