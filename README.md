@@ -46,7 +46,10 @@ Los pasos, uno por uno (todos en `pipeline/`):
 | 7 | `07_verificar_gui.py` | prueba de que el motor en JavaScript reproduce al de Python |
 
 Para usar la interfaz localmente: `cd gui && python3 -m http.server 8000` y abrir
-`http://localhost:8000/`. La versión publicada está enlazada en `docs/manual_usuario.md`.
+`http://localhost:8000/`. La versión publicada está en
+https://etorresram.github.io/microsim-pobreza/; `gui/build_pages.sh` la sube además a la
+rama `gh-pages` para servirla con GitHub Pages (https://etorresram.github.io/micropec-peru/
+una vez habilitado Pages en el repositorio).
 
 ## Estructura
 
