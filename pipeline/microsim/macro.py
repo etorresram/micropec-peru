@@ -140,9 +140,9 @@ def construir_insumos(cargar) -> dict:
             "ing_lab_real_factor": float(lab["ing_lab_medio"] / lab0["ing_lab_medio"] / ipc),
             "ing_lab_real_factor_sector": [float(a / b / ipc) for a, b in zip(lab["ing_lab_medio_sector"], lab0["ing_lab_medio_sector"])],
             "ing_lab_real_factor_sector_area": {u: [float(a / b / ipc) for a, b in zip(lab["ing_lab_medio_sector_area"][u], lab0["ing_lab_medio_sector_area"][u])] for u in ("1", "0")},
-            # bonos extraordinarios de la pandemia (MEF/MIDIS, aproximación): monto por hogar y deciles cubiertos
-            "bono": {"2020": {"monto_anual": 1000.0, "deciles": 7, "mpc": 1.0},
-                     "2021": {"monto_anual": 1225.0, "deciles": 4, "mpc": 1.0}}.get(str(t), {"monto_anual": 0.0, "deciles": 0, "mpc": 1.0}),
+            # Las transferencias ENAHO ya incluyen pagos extraordinarios: no
+            # sumar un bono histórico adicional sin una conciliación de fuentes.
+            "bono": {"monto_anual": 0.0, "deciles": 0, "mpc": 1.0},
             "ipc": ipc,
             "lineas_factor": {k: {"linea": lin[k]["linea"] / v["linea"], "linpe": lin[k]["linpe"] / v["linpe"]} for k, v in lin0.items() if k in lin},
             "linea_factor_nacional": float(np.average([lin[k]["linea"] / v["linea"] for k, v in lin0.items() if k in lin])),

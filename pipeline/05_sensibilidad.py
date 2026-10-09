@@ -21,6 +21,8 @@ for modo in ["solo_pbi", "con_ingresos"]:
                 esc = {**base, **{k: v for k, v in e.items() if k in claves}}
                 esc["passthrough"] = pt
                 esc["elasticidad_gasto"] = el
+                esc["ing_lab_real_factor_sector"] = None
+                esc["ing_lab_real_factor_sector_area"] = None
                 if modo == "solo_pbi":
                     esc["ing_lab_real_factor"] = None
                 r = m.simular(esc)

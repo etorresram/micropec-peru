@@ -8,4 +8,4 @@ Módulos:
 - indicadores: pobreza, desigualdad y curvas de incidencia del crecimiento.
 - macro:       series del BCRP y construcción de los insumos observados por año.
 """
-__version__ = "0.1.0"
+__version__ = "0.2.0"

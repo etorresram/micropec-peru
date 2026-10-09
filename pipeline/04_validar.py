@@ -1,9 +1,9 @@
 """Backcasting 2020-2024 con insumos observados: tablas, figuras y sensibilidad.
 
-Parámetros por defecto del modelo (elegidos con la grilla de sensibilidad):
+Supuestos de trabajo del prototipo (sensibilidad retrospectiva, no validación independiente):
   - ingresos laborales: factores observados por sector x área (modo "sector_area");
   - diferenciales sectoriales del PBI por ocupado con passthrough 0,25 (modo agregado);
-  - elasticidad gasto-ingreso 0,8; bonos de la pandemia como política explícita.
+  - elasticidad del gasto al ingreso real 0,8; transferencias observadas sin bonos duplicados.
 """
 import json
 import sys
@@ -31,6 +31,8 @@ MODOS = {
     "sector_area": {},
 }
 
+C.OUT.joinpath("tablas").mkdir(parents=True, exist_ok=True)
+C.OUT.joinpath("figuras").mkdir(parents=True, exist_ok=True)
 m = cargar_modelo()
 ins = json.load(open(C.MACRO / "insumos_observados.json"))
 base = escenario_base(ins["base"]["laboral"])
@@ -70,7 +72,7 @@ print(f"EAM pobreza {bk.error_pp.abs().mean():.2f} pp")
 # --- 2. sensibilidad: modos x elasticidad x bonos ------------------------------
 sens = []
 for modo in MODOS:
-    for bono in (True, False):
+    for bono in (False,):
         for el in (0.6, 0.8, 1.0):
             for pt in (0.0, 0.25, 1.0):
                 if modo in ("sectorial", "sector_area") and pt != 0.25:
@@ -94,7 +96,8 @@ print(sens.round(2).to_string(index=False))
 obs2019 = {"pobreza": r0["pobreza"], "extrema": r0["pobreza_extrema"], "urbana": r0["por_area"]["urbano"]["pobreza"],
            "rural": r0["por_area"]["rural"]["pobreza"]}
 anios = [2019] + list(bk.anio)
-fig, axes = plt.subplots(1, 4, figsize=(11, 3.1))
+fig, axes = plt.subplots(2, 2, figsize=(9, 6))
+axes = axes.ravel()
 for ax, (k, titulo) in zip(axes, [("pobreza", "Pobreza total"), ("extrema", "Pobreza extrema"),
                                   ("urbana", "Pobreza urbana"), ("rural", "Pobreza rural")]):
     sim = [obs2019[k]] + list(bk[f"{k}_sim"] * 100 / 100)
@@ -109,7 +112,7 @@ for ax, (k, titulo) in zip(axes, [("pobreza", "Pobreza total"), ("extrema", "Pob
     ax.annotate(f"{alto*100:.1f}", (anios[-1], alto * 100), textcoords="offset points", xytext=(5, 3), color="#52514e", fontsize=8)
     ax.annotate(f"{bajo*100:.1f}", (anios[-1], bajo * 100), textcoords="offset points", xytext=(5, -9), color="#52514e", fontsize=8)
 axes[0].legend(frameon=False, loc="upper left", fontsize=8)
-fig.suptitle("Backcasting 2020-2024: pobreza simulada con insumos macro observados vs. cifra oficial", x=0.01, ha="left", fontsize=10)
+fig.suptitle("Backcasting 2020-2024: pobreza simulada con agregados contemporáneos observados vs. cifra oficial", x=0.01, ha="left", fontsize=10)
 fig.tight_layout()
 fig.savefig(C.OUT / "figuras" / "backcast.png", dpi=200)
 fig.savefig(C.OUT / "figuras" / "backcast.pdf")
@@ -138,7 +141,7 @@ fig.savefig(C.OUT / "figuras" / "gic_2024.png", dpi=200)
 fig.savefig(C.OUT / "figuras" / "gic_2024.pdf")
 
 # sensibilidad: elasticidad vs modo (EAM nacional)
-piv = sens[(sens.bonos) & (sens.passthrough == 0.25)].pivot(index="elasticidad", columns="modo", values="EAM")
+piv = sens[(~sens.bonos) & (sens.passthrough == 0.25)].pivot(index="elasticidad", columns="modo", values="EAM")
 fig, ax = plt.subplots(figsize=(5.2, 3.0))
 for col, color in zip(["solo_pbi", "agregado", "sectorial", "sector_area"], [AZUL, NARANJA, AQUA, AMARILLO]):
     ax.plot(piv.index, piv[col], marker="o", lw=2, ms=5, color=color, label={"solo_pbi": "Solo PBI sectorial", "agregado": "Ingreso medio + PBI sectorial",

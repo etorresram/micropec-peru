@@ -1,75 +1,97 @@
-# Microsimulación de Pobreza — microsimulación macro-micro de pobreza
+# Microsimulación de Pobreza
 
-Modelo de microsimulación que combina los microdatos de la ENAHO con series
-macroeconómicas y del mercado laboral para proyectar la pobreza y la distribución
-del ingreso en el Perú, construir escenarios contrafactuales y evaluar el impacto
-distributivo de choques y políticas. Es una **muestra de trabajo** preparada para la
-consultoría del BID *Desarrollo de un modelo de micro-simulación* (Grupo de
-Pobreza, Sector Social); replica en miniatura, para un país, cada una de las
-tareas de los términos de referencia.
+Prototipo macro-micro para explorar pobreza y distribución del bienestar en Perú.
+ENAHO 2019 como base; reconstrucción histórica 2020–2024 con agregados contemporáneos.
+**Versión 0.2.0: correcciones contables, nominales y de equivalencia entre motores.**
 
-| Tarea de los TdR | Dónde está |
-|---|---|
-| Preparar la base (microdatos + series macro, con documentación) | `pipeline/00_descargar.py`, `01_preparar.py`, `02_macro.py`; `docs/nota_metodologica.pdf` §2 |
-| Estimar el modelo base (elección ocupacional, ecuaciones de ingreso) | `pipeline/03_estimar.py`, `microsim/estimar.py` |
-| Módulo de simulación (población, estados laborales, ingresos, no laborales) | `microsim/simular.py` (Python) y `gui/motor.js` (JavaScript, idéntico) |
-| Módulo de resultados y escenarios (pobreza, desigualdad, curvas de incidencia) | `microsim/indicadores.py`; interfaz |
-| Validación: backcasting y sensibilidad | `pipeline/04_validar.py`; `output/tablas/`, `output/figuras/` |
-| Interfaz gráfica para usuarios no técnicos | `gui/index.html` (corre en el navegador, sin servidor) |
-| Código reproducible y documentado, nota metodológica, manual | `run_all.sh`, `docs/` |
+- [Interfaz pública](https://etorresram.github.io/microsim-pobreza/)
+- [Nota metodológica](docs/nota_metodologica.pdf)
+- [Manual de usuario](docs/manual_usuario.md)
+- [Resultados históricos](output/tablas/backcast.csv)
+- [Sensibilidad](output/tablas/sensibilidad.csv)
+- [Verificación automática](output/verificacion.json)
 
-## Resultados en una línea
+Es una muestra de trabajo de Eric Torres Ramírez. No es una herramienta oficial del
+BID ni una proyección oficial del INEI. El ejercicio histórico usa ingresos, empleo,
+demografía, transferencias y líneas de las encuestas de los años evaluados: **no
+constituye una validación de pronóstico fuera de muestra**. Los parámetros son
+supuestos de trabajo; las limitaciones están documentadas en la nota.
 
-Estimado en la ENAHO 2019, el modelo reproduce la cifra oficial del año base
-(20,2 %) y, alimentado solo con los insumos macro y laborales observados de cada
-año, reproduce la pobreza de 2020-2024 con un error absoluto medio de 1,4 puntos
-porcentuales (2020: 29,3 % simulado vs. 30,1 % oficial; 2024: 25,5 % vs. 27,6 %).
-Las tablas completas de validación y sensibilidad están en `output/tablas/`.
+## Reproducir
 
-## Cómo correrlo
+Requisitos: Python 3.11+, Node.js 18+ y Tectonic en PATH. También puede indicarse
+la ruta de Node en `NODE_BINARY`. Las dependencias Python están fijadas en
+`requirements.lock.txt`; `requirements.txt` enumera las dependencias directas.
 
 ```bash
-./run_all.sh            # crea .venv, descarga la ENAHO 2019-2024 del INEI y corre todo (~10 min)
+./run_all.sh                  # descarga INEI/BCRP y genera todos los productos
+./run_all.sh --sin-descarga   # requiere las instantáneas locales ya descargadas
 ```
 
-Los pasos, uno por uno (todos en `pipeline/`):
+El script crea las carpetas necesarias y, si no existe, el entorno `.venv`.
+Si se reutiliza otro entorno, instalar primero con
+`.venv/bin/python -m pip install -r requirements.lock.txt`.
+Las descargas pueden tardar y las fuentes pueden revisar sus series: conservar los
+archivos de entrada permite reproducir una versión. No se promete un tiempo fijo.
 
-| Paso | Script | Produce |
-|---|---|---|
-| 0 | `00_descargar.py` | `data/raw/<año>/` módulos 200, 300, 500 y Sumaria (INEI) |
-| 0b | `microsim/informalidad.py` | formalidad imputada para 2024 (el INEI no publicó `ocupinf`) |
-| 1 | `01_preparar.py` | `data/clean/personas_<año>.parquet`, `hogares_<año>.parquet` |
-| 2 | `02_macro.py` | `data/macro/bcrp_anual.csv`, `insumos_observados.json` |
-| 3 | `03_estimar.py` | `data/clean/base_modelo_2019.parquet`, `output/resumen_estimacion.json` |
-| 4 | `04_validar.py` | `output/tablas/backcast.csv`, `sensibilidad.csv`, `output/figuras/*.png` |
-| 6 | `06_exportar_gui.py` | `gui/datos.json.gz` (base del modelo para la interfaz) |
-| 7 | `07_verificar_gui.py` | prueba de que el motor en JavaScript reproduce al de Python |
+Para ejecutar solo las pruebas, después de generar los datos de la interfaz:
 
-Para usar la interfaz localmente: `cd gui && python3 -m http.server 8000` y abrir
-`http://localhost:8000/`. La versión publicada está en
-https://etorresram.github.io/microsim-pobreza/ (GitHub Pages, rama `gh-pages`, que se
-regenera con `gui/build_pages.sh`).
+```bash
+.venv/bin/python pipeline/07_verificar_gui.py
+```
+
+Esta prueba compara todos los indicadores, territorios, curvas y diagnósticos de
+Python y JavaScript para los cinco años y cuatro modos de ingreso, el año base y
+escenarios de políticas. También verifica neutralidad nominal, cierre contable,
+metas agregadas y entradas inválidas. Node ejecuta el mismo `gui/motor.js` que la web.
+
+Para servir localmente la interfaz:
+
+```bash
+cd gui
+python3 -m http.server 8000
+```
+
+Abrir `http://localhost:8000/`. Generar una carpeta autocontenida con
+`./gui/build_pages.sh /ruta/de/salida`; este script **no publica**. La publicación se
+realiza separadamente desde una revisión verificada.
+
+## Qué hace el modelo
+
+1. Prepara personas y hogares; conserva el ingreso individual y explicita un ajuste
+   contable firmado para cerrar el ingreso total de la Sumaria.
+2. Estima estados laborales y sectores (logits no ponderados) e ingresos por
+   segmento (mínimos cuadrados ponderados); documenta supuestos y limitaciones.
+3. Calibra composición demográfica y reasigna estados laborales por probabilidades.
+4. Ofrece cuatro modos: solo PBI, ingreso agregado, ingreso por sector, e ingreso
+   por sector y área. Las metas de ingreso se ajustan después de las transiciones.
+5. Actualiza componentes no laborales; distingue ingreso corriente, consumo de
+   bonos y retiro de activos previsionales. No suma bonos de pandemia a flujos
+   históricos que ya pueden incluirlos.
+6. Aplica la elasticidad al ingreso **real**, actualiza líneas regionales y calcula
+   pobreza, desigualdad, curvas reordenadas, costo y cobertura de las políticas.
 
 ## Estructura
 
-```
-pipeline/microsim/   paquete: config, preparar, estimar, simular, indicadores, macro, informalidad
-pipeline/0X_*.py     scripts del pipeline, numerados en orden de ejecución
-gui/                 interfaz (index.html + motor.js + datos.json.gz)
-docs/                nota metodológica (LaTeX/PDF) y manual de usuario
-output/              tablas, figuras y resúmenes de estimación
-data/                raw (INEI, no versionado), clean (parquet), macro (BCRP)
-```
+- `pipeline/microsim/`: preparación, estimación, escenarios, indicadores y fuentes.
+- `pipeline/00_...07_*.py`: etapas y pruebas; `verificar_motor.cjs`: ejecutor Node.
+- `gui/`: motor JS, interfaz y datos generados (sin pérdida de precisión).
+- `docs/`: plantilla, generador de nota, PDF y manual.
+- `output/`: tablas, figuras, estimación y verificación.
+- `data/raw`, `data/clean`: archivos locales no versionados; `data/macro`: instantánea.
 
-## Escalar a otros países
+## Extensión y limitaciones
 
-El motor no contiene nada específico del Perú: trabaja sobre dos tablas
-(`personas`, `hogares`) con nombres de columna fijos (`microsim/preparar.py` los
-documenta) y sobre un diccionario de insumos macro. Para otro país de la base
-armonizada del BID basta escribir el equivalente de `preparar.py` y de la tabla de
-correspondencia sector-PBI de `config.py`; estimación, simulación, validación e
-interfaz se reutilizan sin cambios.
+Las convenciones actuales incluyen seis sectores, edad laboral 14+, programas
+peruanos y pobreza por gasto. Adaptar otro país exige revisar bienestar, líneas,
+programas, demografía, sectores, fuentes y estimación, además de preparación.
+La reponderación no crea hogares nuevos. La asignación laboral es discreta. Los
+logits no usan pesos; los residuos se sortean sin corrección de selección. Los
+adultos sin estado laboral observado se asumen inactivos. La informalidad imputada
+2024 no tiene validación temporal propia. No hay intervalos de confianza ni efectos
+de equilibrio general. La selección de receptores históricos se mantiene fija.
 
-## Autor
+## Desarrollo
 
-Eric Torres Ramírez (etorresram@gmail.com).
+Las pruebas automáticas verifican propiedades concretas; no sustituyen la evaluación
+metodológica. Autor: Eric Torres Ramírez (etorresram@gmail.com).

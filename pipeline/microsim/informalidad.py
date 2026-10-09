@@ -59,6 +59,7 @@ def _X(d: pd.DataFrame) -> pd.DataFrame:
 
 
 def imputar() -> pd.DataFrame:
+    C.CLEAN.mkdir(parents=True, exist_ok=True)
     tr = _leer(2023)
     te = _leer(2024)
     y = (tr.ocupinf == 2).astype(int).values          # 1 = formal

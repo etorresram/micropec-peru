@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# Publica la interfaz en GitHub Pages: envuelve index.html (escrito para el visor de
-# fragmentos HTML, sin <html>/<head>) en un documento completo y lo sube con
-# motor.js y datos.json a la rama gh-pages. Requiere que el repo sea público (o plan
-# Pro) y Pages habilitado desde la rama gh-pages: Settings > Pages > Branch: gh-pages.
+# Construye una carpeta revisable. No hace push ni modifica ramas remotas.
 set -euo pipefail
 cd "$(dirname "$0")"
-[ -f datos.json ] || { echo "falta gui/datos.json: corre pipeline/06_exportar_gui.py"; exit 1; }
-T=$(mktemp -d)
-{ printf '<!doctype html>\n<html lang="es">\n<head>\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-  sed -n '1,/^<\/style>/p' index.html; printf '</head>\n<body>\n'; sed '1,/^<\/style>/d' index.html; printf '</body>\n</html>\n'; } > "$T/index.html"
-cp motor.js datos.json "$T/"
-printf 'Microsimulación de Pobreza — interfaz publicada con GitHub Pages. Generada con gui/build_pages.sh desde la rama main.\n' > "$T/README.md"
-REMOTO=$(git -C .. remote get-url origin)
-( cd "$T" && git init -q -b gh-pages && git add -A && git commit -q -m "Interfaz para GitHub Pages" && git push -q --force "$REMOTO" gh-pages )
-rm -rf "$T"
-echo "publicado en la rama gh-pages de $REMOTO"
+DESTINO="${1:?Uso: ./gui/build_pages.sh /ruta/de/salida}"
+[ -f datos.json.gz ] || { echo "Faltan datos: ejecutar pipeline/06_exportar_gui.py" >&2; exit 1; }
+[ -f ../output/verificacion.json ] || { echo "Falta ejecutar pipeline/07_verificar_gui.py" >&2; exit 1; }
+mkdir -p "$DESTINO"
+{
+  printf '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<title>Microsimulación de Pobreza</title>\n'
+  sed -n '1,/^<\/style>/p' index.html
+  printf '</head>\n<body>\n'
+  sed '1,/^<\/style>/d' index.html
+  printf '</body>\n</html>\n'
+} > "$DESTINO/index.html"
+cp motor.js datos.json.gz "$DESTINO/"
+cp ../docs/nota_metodologica.pdf "$DESTINO/"
+cp ../output/verificacion.json "$DESTINO/"
+printf 'Interfaz de microsimulación, versión 0.2.0. Construida desde una revisión verificada.\n' > "$DESTINO/README.md"
+echo "Interfaz construida en $DESTINO"

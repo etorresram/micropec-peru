@@ -2,7 +2,7 @@
 
 La interfaz corre el mismo motor de simulación en JavaScript (gui/motor.js), de
 modo que un escenario produce exactamente el mismo resultado en Python y en el
-navegador. Se exportan solo las columnas que el motor necesita, redondeadas.
+navegador. Se exportan solo las columnas que el motor necesita, sin redondear.
 """
 import gzip
 import json
@@ -24,7 +24,7 @@ bk = pd.read_csv(C.OUT / "tablas" / "backcast.csv")
 
 
 def r(a, d):
-    return [round(float(x), d) for x in a]
+    return [float(x) for x in a]  # precisión completa: conservar rankings y umbrales
 
 
 personas = {
@@ -43,13 +43,14 @@ hogares = {
 }
 base_lab = ins["base"]["laboral"]
 datos = {
-    "meta": {"anio_base": C.ANIO_BASE, "fuente": "ENAHO 2019 (INEI), módulos 200, 300, 500 y Sumaria",
+    "meta": {"version": "0.2.0", "anio_base": C.ANIO_BASE, "fuente": "ENAHO 2019 (INEI), módulos 200, 300, 500 y Sumaria",
              "sectores": C.SECTORES, "nolab": NOLAB, "n_personas": len(q), "n_hogares": len(h)},
     "params": {"coef_sector": est["coef_sector"], "L0": r(m.L0, 1), "omega": r(m.omega, 5),
                "laboral_base": {k: base_lab[k] for k in ("tasa_ocupacion", "tasa_desempleo", "informalidad", "sector_shares")},
                "defaults": {"passthrough": 0.25, "elasticidad_gasto": 0.8}},
     "escenario_base": escenario_base(base_lab),
-    "presets": {t: {k: v for k, v in e.items() if k not in ("poblacion_grupos", "lineas_factor")} for t, e in ins["anios"].items()},
+    "presets": {t: {**escenario_base(base_lab), **e, "passthrough": 0.25, "elasticidad_gasto": 0.8} for t, e in ins["anios"].items()},
+    "demografia": {"claves": m.grupos_claves, "conteos": m.grupos_hh.astype(int).tolist()},
     "oficial": {"2019": {"pobreza": 0.2019, "pobreza_extrema": 0.0285}, **{str(int(x.anio)): {"pobreza": x.pobreza_obs, "pobreza_extrema": x.extrema_obs,
                 "pobreza_urbana": x.urbana_obs, "pobreza_rural": x.rural_obs} for x in bk.itertuples()}},
     "backcast": {str(int(x.anio)): {"pobreza": x.pobreza_sim, "pobreza_extrema": x.extrema_sim} for x in bk.itertuples()},

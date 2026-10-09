@@ -10,5 +10,5 @@ micro-simulación". Todo el código y la documentación van en español.
   Cualquier cambio en uno exige el mismo cambio en el otro y correr
   `pipeline/07_verificar_gui.py`.
 - Parámetros por defecto: passthrough 0,25, elasticidad gasto-ingreso 0,8
-  (justificados en `output/tablas/sensibilidad.csv` y en la nota metodológica).
-- Entorno: `.venv` con `requirements.txt`; correr todo con `./run_all.sh`.
+  (supuestos de trabajo; sensibilidad retrospectiva, no ajuste predictivo independiente).
+- Entorno: `.venv` con `requirements.lock.txt`, Node.js 18+ y Tectonic; correr todo con `./run_all.sh`.

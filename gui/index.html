@@ -131,11 +131,11 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
       <div class="fila">
         <select id="preset" aria-label="Escenario predefinido">
           <option value="base">Año base 2019 (sin cambios)</option>
-          <option value="2020">2020 observado (pandemia)</option>
-          <option value="2021">2021 observado</option>
-          <option value="2022">2022 observado</option>
-          <option value="2023">2023 observado</option>
-          <option value="2024">2024 observado</option>
+          <option value="2020">2020: insumos observados</option>
+          <option value="2021">2021: insumos observados</option>
+          <option value="2022">2022: insumos observados</option>
+          <option value="2023">2023: insumos observados</option>
+          <option value="2024">2024: insumos observados</option>
           <option value="shock">Choque: recesión + inflación</option>
           <option value="afp">Política: retiro extraordinario AFP</option>
         </select>
@@ -146,17 +146,20 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
         <button id="fijar" disabled>Fijar como referencia</button>
         <button id="reset">Volver a 2019</button>
       </div>
-      <details open><summary>Economía</summary><div id="g-macro"></div></details>
+      <details open><summary>Economía</summary>
+        <label for="modo">Modo de ingresos laborales</label>
+        <select id="modo"><option value="agregado">Ingreso medio + PBI sectorial</option><option value="solo_pbi">Solo PBI sectorial</option><option value="sectorial">Ingresos por sector</option><option value="sector_area">Ingresos por sector y área</option></select>
+        <p class="nota" id="modo-nota"></p><div id="g-macro"></div></details>
       <details><summary>Mercado laboral</summary><div id="g-laboral"></div></details>
       <details><summary>Precios y líneas de pobreza</summary><div id="g-precios"></div></details>
       <details><summary>Ingresos no laborales</summary><div id="g-nolab"></div></details>
       <details><summary>Políticas: bonos y retiros AFP</summary><div id="g-politica"></div></details>
       <details><summary>Supuestos del modelo</summary><div id="g-supuestos"></div></details>
-      <p class="nota">Las variaciones son acumuladas respecto de 2019. Los escenarios “observado” cargan los insumos reales de cada año (BCRP, INEI) y permiten comparar con la cifra oficial.</p>
+      <p class="nota">Las variaciones son acumuladas respecto de 2019. Los años históricos reconstruyen escenarios con agregados contemporáneos de BCRP y ENAHO. No son pronósticos fuera de muestra. Las líneas regionales y la composición demográfica se conservan al editar un escenario histórico.</p>
     </aside>
 
     <section id="res">
-      <div class="cargando" id="cargando">Descargando la base del modelo (12 MB, unos segundos)…</div>
+      <div class="cargando" id="cargando">Descargando la base del modelo…</div>
       <div id="contenido" hidden>
         <div class="dos">
           <div class="bloque">
@@ -179,10 +182,11 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
           <h2>Resumen de indicadores</h2>
           <p class="sub" id="sub-tabla">Base 2019, escenario actual y referencia</p>
           <div class="tabla-scroll"><table id="tabla"></table></div>
-          <div class="fila"><button id="copiar">Copiar tabla como CSV</button><button id="ver-csv">Mostrar CSV</button></div>
+          <div class="fila"><button id="descargar-csv">Descargar CSV</button><button id="guardar-escenario">Guardar escenario</button><button id="abrir-escenario">Cargar escenario JSON</button><input type="file" id="archivo-escenario" accept=".json,application/json" hidden><button id="copiar">Copiar tabla como CSV</button><button id="ver-csv">Mostrar CSV</button></div>
           <textarea id="csv" hidden aria-label="CSV de resultados"></textarea>
         </div>
-        <p class="nota">Fuente: ENAHO 2019 (INEI), módulos 200, 300, 500 y Sumaria; PBI sectorial, IPC y remesas del BCRP. El motor en JavaScript reproduce el de Python del repositorio (prueba de equivalencia incluida). Resultados ilustrativos de un modelo de muestra.</p>
+        <p class="nota"><a href="nota_metodologica.pdf" target="_blank" rel="noopener">Nota metodológica</a> · <a href="https://github.com/etorresram/microsim-pobreza/blob/main/docs/manual_usuario.md" target="_blank" rel="noopener">Manual</a> · <a href="https://github.com/etorresram/microsim-pobreza" target="_blank" rel="noopener">Código</a></p>
+        <p class="nota">Fuente: ENAHO 2019 (INEI), módulos 200, 300, 500 y Sumaria; PBI sectorial, IPC y remesas del BCRP. Motores Python y JavaScript con pruebas de equivalencia por año y modo. Versión 0.2.0. Resultados ilustrativos de un modelo de muestra.</p>
       </div>
     </section>
   </div>
@@ -198,6 +202,20 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
   const DOM = { 1: "Costa norte", 2: "Costa centro", 3: "Costa sur", 4: "Sierra norte", 5: "Sierra centro", 6: "Sierra sur", 7: "Selva", 8: "Lima Metropolitana" };
   const DPTO = { 1: "Amazonas", 2: "Áncash", 3: "Apurímac", 4: "Arequipa", 5: "Ayacucho", 6: "Cajamarca", 7: "Callao", 8: "Cusco", 9: "Huancavelica", 10: "Huánuco", 11: "Ica", 12: "Junín", 13: "La Libertad", 14: "Lambayeque", 15: "Lima", 16: "Loreto", 17: "Madre de Dios", 18: "Moquegua", 19: "Pasco", 20: "Piura", 21: "Puno", 22: "San Martín", 23: "Tacna", 24: "Tumbes", 25: "Ucayali" };
   let D = null, modelo = null, base = null, ref = null, actual = null;
+  let cargado = null, valoresCargados = {}, presetCargado = "base", cambiado = false;
+  let escenarioActual = null, nombreActual = "Año base 2019", oficialActual = null, nombreRef = "", escenarioRef = null;
+  const copia = x => JSON.parse(JSON.stringify(x));
+  function editar() { cambiado = true; $("estado").textContent = "Cambios pendientes: pulse Simular"; }
+  function modoUI() {
+    const modo = $("modo").value;
+    for (const id of ["glab","pass",...SECT.map((_,i) => "va"+i)]) {
+      const des = id === "glab" ? modo !== "agregado" : !["solo_pbi","agregado"].includes(modo);
+      $("n-"+id).disabled = des; $("r-"+id).disabled = des;
+    }
+    $("modo-nota").textContent = ["sectorial","sector_area"].includes(modo)
+      ? "Se usan las metas de ingreso del escenario por sector (y área). Cambie de modo para editar el ingreso agregado o el PBI."
+      : "El PBI define diferenciales sectoriales; en modo agregado, la meta de ingreso medio fija el nivel.";
+  }
 
   // ---- definición de controles (id, etiqueta, min, max, paso, valor neutro) -------------------
   const CTL = {
@@ -243,39 +261,52 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
       const cont = $("g-" + g);
       for (const [id, lbl, min, max, step, val] of lista) {
         const div = document.createElement("div"); div.className = "ctl";
-        div.innerHTML = `<label for="r-${id}">${lbl}</label><input id="n-${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${lbl}"><input id="r-${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;
+        div.innerHTML = `<label for="r-${id}">${lbl}</label><input id="n-${id}" type="number" min="${min}" max="${max}" step="any" value="${val}" aria-label="${lbl}"><input id="r-${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;
         cont.appendChild(div);
         const r = div.querySelector("input[type=range]"), n = div.querySelector("input[type=number]");
-        r.addEventListener("input", () => { n.value = r.value; });
-        n.addEventListener("input", () => { r.value = n.value; });
+        r.addEventListener("input", () => { n.value = r.value; editar(); });
+        n.addEventListener("input", () => { r.value = n.value; editar(); });
       }
     }
   }
   const get = id => parseFloat($("n-" + id).value);
-  const set = (id, v) => { const x = Math.round(v * 1000) / 1000; $("n-" + id).value = x; $("r-" + id).value = x; };
+  const set = (id, v) => { const x = v; $("n-" + id).value = x; $("r-" + id).value = x; };
 
   // ---- escenario <-> controles --------------------------------------------------------------
   function escenarioDesdeControles() {
-    const sh = SECT.map((_, i) => get("sh" + i)); const ssum = sh.reduce((a, b) => a + b, 0);
-    const ipc = 1 + get("ipc") / 100;
-    return {
-      ...D.escenario_base,
-      poblacion_factor: 1 + get("pob") / 100,
-      tasa_ocupacion: get("ocup") / 100, tasa_desempleo: get("des") / 100, informalidad: get("inf") / 100,
-      sector_shares: sh.map(v => v / ssum),
-      va_factor: SECT.map((_, i) => 1 + get("va" + i) / 100),
-      ing_lab_real_factor: 1 + get("glab") / 100, passthrough: get("pass"), ipc,
-      linea_factor_nacional: 1 + get("linea") / 100, linpe_factor_nacional: 1 + get("linpe") / 100,
-      tr_juntos_factor: 1 + get("juntos") / 100, tr_p65_factor: 1 + get("p65") / 100, tr_pub_otros_factor: 1 + get("pubotros") / 100,
-      tr_privadas_factor: 1 + get("priv") / 100, remesas_factor: 1 + get("rem") / 100, rentas_factor: 1 + get("rentas") / 100,
-      alq_factor: ipc, otros_factor: ipc,
-      elasticidad_gasto: get("elas"),
-      bono: { monto_anual: get("bmonto"), deciles: get("bdec"), mpc: get("bmpc") },
-      afp: { cobertura: get("acob") / 100, monto: get("amonto"), mpc: get("ampc") },
-      ing_lab_real_factor_sector: null,
-    };
+    const e = copia(cargado);
+    const cambiadoId = id => $("n-"+id).value !== valoresCargados[id];
+    const factor = id => 1 + get(id)/100;
+    for (const lista of Object.values(CTL)) for (const [id] of lista) if (!Number.isFinite(get(id))) throw Error("Complete el campo: " + id);
+    const mapa = {pob:"poblacion_factor",ipc:"ipc",linea:"linea_factor_nacional",linpe:"linpe_factor_nacional",
+      juntos:"tr_juntos_factor",p65:"tr_p65_factor",pubotros:"tr_pub_otros_factor",priv:"tr_privadas_factor",rem:"remesas_factor",rentas:"rentas_factor"};
+    for (const [id,k] of Object.entries(mapa)) if (cambiadoId(id)) e[k] = factor(id);
+    for (const [id,k] of [["ocup","tasa_ocupacion"],["des","tasa_desempleo"],["inf","informalidad"]]) if (cambiadoId(id)) e[k] = get(id)/100;
+    for (const [id,k] of [["pass","passthrough"],["elas","elasticidad_gasto"]]) if (cambiadoId(id)) e[k] = get(id);
+    SECT.forEach((_,i) => { if (cambiadoId("va"+i)) e.va_factor[i] = factor("va"+i); });
+    if (SECT.some((_,i) => cambiadoId("sh"+i))) e.sector_shares = SECT.map((_,i) => get("sh"+i)/100);
+    if (cambiadoId("ipc")) { e.alq_factor = e.ipc; e.otros_factor = e.ipc; }
+    if (e.lineas_factor) for (const v of Object.values(e.lineas_factor)) {
+      if (cambiadoId("linea")) v.linea *= e.linea_factor_nacional/cargado.linea_factor_nacional;
+      if (cambiadoId("linpe")) v.linpe *= e.linpe_factor_nacional/cargado.linpe_factor_nacional;
+    }
+    const modo = $("modo").value;
+    if (modo !== "sector_area") e.ing_lab_real_factor_sector_area = null;
+    if (!["sectorial","sector_area"].includes(modo)) e.ing_lab_real_factor_sector = null;
+    if (modo === "solo_pbi") e.ing_lab_real_factor = null;
+    if (modo === "agregado") e.ing_lab_real_factor = factor("glab");
+    if (modo === "sectorial" && e.ing_lab_real_factor_sector == null) e.ing_lab_real_factor_sector = Array(6).fill(1);
+    if (modo === "sector_area" && e.ing_lab_real_factor_sector_area == null) e.ing_lab_real_factor_sector_area = {"0":Array(6).fill(1),"1":Array(6).fill(1)};
+    const b = e.bono, a = e.afp;
+    for (const [id,k] of [["bmonto","monto_anual"],["bdec","deciles"],["bmpc","mpc"]]) if (cambiadoId(id)) b[k] = get(id);
+    if (cambiadoId("acob")) a.cobertura = get("acob")/100;
+    if (cambiadoId("amonto")) a.monto = get("amonto");
+    if (cambiadoId("ampc")) a.mpc = get("ampc");
+    return e;
   }
   function controlesDesdeEscenario(e) {
+    cargado = copia(e); cambiado = false;
+    $("modo").value = e.ing_lab_real_factor_sector_area != null ? "sector_area" : e.ing_lab_real_factor_sector != null ? "sectorial" : e.ing_lab_real_factor == null ? "solo_pbi" : "agregado";
     SECT.forEach((_, i) => { set("va" + i, (e.va_factor[i] - 1) * 100); set("sh" + i, e.sector_shares[i] * 100); });
     set("glab", ((e.ing_lab_real_factor == null ? 1 : e.ing_lab_real_factor) - 1) * 100);
     set("pass", e.passthrough == null ? 0.25 : e.passthrough);
@@ -287,9 +318,12 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
     set("elas", e.elasticidad_gasto == null ? 0.8 : e.elasticidad_gasto);
     const b = e.bono || {}; set("bmonto", b.monto_anual || 0); set("bdec", b.deciles || 0); set("bmpc", b.mpc == null ? 1 : b.mpc);
     const a = e.afp || {}; set("acob", (a.cobertura || 0) * 100); set("amonto", a.monto || 0); set("ampc", a.mpc == null ? 0.7 : a.mpc);
+    valoresCargados = {};
+    for (const lista of Object.values(CTL)) for (const [id] of lista) valoresCargados[id] = $("n-"+id).value;
+    modoUI();
   }
   function preset(nombre) {
-    const b = { ...D.escenario_base, passthrough: 0.25, elasticidad_gasto: 0.8 };
+    const b = { ...copia(D.escenario_base), ing_lab_real_factor: 1, passthrough: 0.25, elasticidad_gasto: 0.8 };
     if (nombre === "base") return b;
     if (D.presets[nombre]) return { ...b, ...D.presets[nombre] };
     if (nombre === "shock") return { ...b, va_factor: [0.98, 0.97, 0.94, 0.9, 0.95, 0.96], ing_lab_real_factor: 0.93, ipc: 1.08,
@@ -317,10 +351,10 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
     return `<div class="tile"><div class="lbl">${lbl}</div><div class="num">${val}</div><div class="delta">${chip(d, fmt, peorSiSube)} <span>vs. 2019</span>${extra}</div></div>`;
   }
   function hero(r) {
-    const sel = $("preset").value, ofi = D.oficial[sel];
+    const ofi = oficialActual;
     const maxM = 0.5, fw = Math.min(r.pobreza / maxM, 1) * 100, bm = Math.min(base.pobreza / maxM, 1) * 100;
     const main = `<div class="tile main">
-      <div class="lbl">Pobreza monetaria · ${esc($("preset").selectedOptions[0].textContent)}</div>
+      <div class="lbl">Pobreza monetaria · ${esc(nombreActual)}</div>
       <div class="hero-num">${pct(r.pobreza)}</div>
       <div class="delta">${chip(r.pobreza - base.pobreza, pp)} <span>vs. 2019 (${pct(base.pobreza)})</span>${ofi ? `<span>· oficial INEI <b style="color:var(--band-fg)">${pct(ofi.pobreza)}</b></span>` : ""}</div>
       <div class="meter" role="img" aria-label="Pobreza: escenario ${pct(r.pobreza)}, base 2019 ${pct(base.pobreza)}"><div class="fill" style="width:${fw}%"></div><div class="mark" style="left:calc(${bm}% - 1.5px)"></div></div>
@@ -365,7 +399,7 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
       });
       s += `<text x="${ml + bw * d + bw / 2}" y="${H - mb + 17}" text-anchor="middle">D${d + 1}</text>`;
     }
-    s += `<text x="${(ml + W - mr) / 2}" y="${H - 5}" text-anchor="middle">Decil de gasto per cápita (2019) · D1 = más pobre</text>`;
+    s += `<text x="${(ml + W - mr) / 2}" y="${H - 5}" text-anchor="middle">Deciles reordenados en cada distribución · D1 = más pobre</text>`;
     barras.forEach((b, i) => {
       const rr = Math.min(4, b.h / 2);
       // extremo redondeado en el lado del dato, recto en la línea de cero
@@ -440,12 +474,16 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
       ["Gasto per cápita medio (S/ corrientes)", r.gasto_pc_medio, 0], ["Tasa de ocupación (%)", r.laboral.tasa_ocupacion * 100, 1],
       ["Tasa de desempleo (%)", r.laboral.tasa_desempleo * 100, 1], ["Informalidad (%)", r.laboral.informalidad * 100, 1],
       ["Ingreso laboral medio real (S/ de 2019)", r.laboral.ing_lab_medio_real, 0],
+      ["Costo anual del bono (millones S/)", r.politicas.costo_bono_anual/1e6, 2],
+      ["Hogares cubiertos por bono", r.politicas.hogares_bono, 0],
+      ["Retiro anual AFP (millones S/; no es gasto fiscal)", r.politicas.retiro_afp_anual/1e6, 2],
+      ["Personas que retiran AFP", r.politicas.personas_afp, 0],
     ];
   }
   function tabla(r) {
-    const cols = [["Base 2019", base], ["Escenario", r]]; if (ref && ref !== r) cols.splice(1, 0, ["Referencia", ref]);
-    const sel = $("preset").value, ofi = D.oficial[sel];
-    let h = `<thead><tr><th>Indicador</th>${cols.map(c => `<th>${c[0]}</th>`).join("")}${ofi ? "<th>Oficial INEI</th>" : ""}</tr></thead><tbody>`;
+    const cols = [["Base 2019", base], ["Escenario", r]]; if (ref && ref !== r) cols.splice(1, 0, ["Referencia: " + nombreRef, ref]);
+    const ofi = oficialActual;
+    let h = `<thead><tr><th>Indicador</th>${cols.map(c => `<th>${esc(c[0])}</th>`).join("")}${ofi ? "<th>Oficial INEI</th>" : ""}</tr></thead><tbody>`;
     filas(r).forEach((f, i) => {
       h += `<tr><td>${f[0]}</td>${cols.map(c => `<td class="${c[0] === "Escenario" ? "esc" : ""}">${num(filas(c[1])[i][1], f[2])}</td>`).join("")}`;
       if (ofi) {
@@ -455,9 +493,19 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
       h += "</tr>";
     });
     $("tabla").innerHTML = h + "</tbody>";
-    let csv = "indicador;" + cols.map(c => c[0]).join(";") + "\n";
-    filas(r).forEach((f, i) => { csv += f[0] + ";" + cols.map(c => filas(c[1])[i][1].toFixed(4)).join(";") + "\n"; });
-    csv += "\ndecil;gic_escenario\n" + r.gic.map((g, i) => `${i + 1};${(g * 100).toFixed(2)}`).join("\n") + "\n";
+    const celda = x => '"' + String(x).replace(/"/g, '""') + '"';
+    let csv = "indicador;" + cols.map(c => celda(c[0])).join(";") + (ofi ? ";Oficial INEI" : "") + (ref ? ";Diferencia vs referencia" : "") + "\n";
+    filas(r).forEach((f,i) => {
+      const oficial = ofi ? [ofi.pobreza,ofi.pobreza_extrema,ofi.pobreza_urbana,ofi.pobreza_rural][i] : null;
+      csv += celda(f[0])+";"+cols.map(c => filas(c[1])[i][1].toFixed(6)).join(";") + (ofi ? ";"+(oficial == null ? "" : oficial*100) : "") + (ref ? ";"+(f[1]-filas(ref)[i][1]).toFixed(6) : "") + "\n";
+    });
+    csv += "\ndecil;gic_escenario_pct;gic_referencia_pct\n" + r.gic.map((g,i) => `${i+1};${g*100};${ref ? ref.gic[i]*100 : ""}`).join("\n") + "\n";
+    for (const [tipo,mapa,key] of [["dominio",DOM,"por_dominio"],["departamento",DPTO,"por_dpto"]]) {
+      csv += `\n${tipo};base_pct;escenario_pct;referencia_pct\n`;
+      for (const k of Object.keys(r[key])) csv += `${celda(mapa[k] || k)};${base[key][k]*100};${r[key][k]*100};${ref ? ref[key][k]*100 : ""}\n`;
+    }
+    csv += "\nversion;"+D.meta.version+"\nescenario;"+celda(nombreActual)+"\nsupuestos_json;"+celda(JSON.stringify(escenarioActual))+"\ndiagnostico_json;"+celda(JSON.stringify(r.diagnostico))+"\n";
+    if (ref) csv += "referencia;"+celda(nombreRef)+"\nsupuestos_referencia_json;"+celda(JSON.stringify(escenarioRef))+"\n";
     $("csv").value = csv;
   }
 
@@ -469,17 +517,53 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
     const t0 = performance.now();
     setTimeout(() => {
       try {
-        const r = modelo.simular(escenarioDesdeControles());
+        const e = escenarioDesdeControles();
+        const r = modelo.simular(e);
+        escenarioActual = copia(e);
+        nombreActual = cambiado ? "Personalizado (base: " + presetCargado + ")" : (presetCargado === "base" ? "Año base 2019" : presetCargado + ": insumos observados / escenario");
+        oficialActual = D.oficial[presetCargado] || null;
         render(r);
         $("estado").textContent = `${num(D.meta.n_personas)} personas · ${num(D.meta.n_hogares)} hogares · ${Math.round(performance.now() - t0)} ms`;
       } catch (e) { $("estado").textContent = "Error: " + e.message; }
       ocupado = false; $("simular").disabled = false; $("fijar").disabled = false;
     }, 20);
   }
+  $("modo").addEventListener("change", () => { editar(); modoUI(); });
+  function descargar(nombre, contenido, tipo) {
+    const url = URL.createObjectURL(new Blob([contenido], {type: tipo}));
+    const a = document.createElement("a"); a.href = url; a.download = nombre; a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  $("descargar-csv").addEventListener("click", () => { if (actual) descargar("microsim-resultados.csv", "\ufeff"+$("csv").value, "text/csv;charset=utf-8"); });
+  $("guardar-escenario").addEventListener("click", () => { if (actual) descargar("microsim-escenario.json", JSON.stringify({version:D.meta.version,nombre:nombreActual,escenario:escenarioActual},null,2), "application/json"); });
+  $("abrir-escenario").addEventListener("click", () => $("archivo-escenario").click());
+  $("archivo-escenario").addEventListener("change", async ev => {
+    try {
+      const file = ev.target.files[0]; if (!file) return;
+      if (file.size > 1000000) throw Error("Archivo de escenario demasiado grande");
+      const data = JSON.parse(await file.text());
+      if (data.version !== D.meta.version) throw Error("Versión de escenario incompatible");
+      MicroSim.validarEscenario(data.escenario, D);
+      presetCargado = "importado"; controlesDesdeEscenario(data.escenario); cambiado = true; correr();
+    } catch(e) { $("estado").textContent = "No se cargó el escenario: " + e.message; }
+    ev.target.value = "";
+  });
+  for (const id of ["gic","dominios","dptos"]) {
+    const boton = document.createElement("button"); boton.textContent = "Descargar gráfico SVG";
+    boton.addEventListener("click", () => {
+      const svg = $(id).querySelector("svg"); if (!svg) return;
+      const clon = svg.cloneNode(true), originales = [svg,...svg.querySelectorAll("*")], copias = [clon,...clon.querySelectorAll("*")];
+      originales.forEach((el,i) => { const cs = getComputedStyle(el); for (const k of ["fill","stroke","font-family","font-size","font-weight"]) copias[i].style.setProperty(k,cs.getPropertyValue(k)); });
+      clon.setAttribute("xmlns","http://www.w3.org/2000/svg");
+      const vb = svg.viewBox.baseVal; clon.setAttribute("width",vb.width); clon.setAttribute("height",vb.height);
+      descargar("microsim-"+id+".svg", new XMLSerializer().serializeToString(clon), "image/svg+xml");
+    });
+    $(id).after(boton);
+  }
   $("simular").addEventListener("click", correr);
-  $("cargar").addEventListener("click", () => { controlesDesdeEscenario(preset($("preset").value)); correr(); });
-  $("reset").addEventListener("click", () => { $("preset").value = "base"; controlesDesdeEscenario(preset("base")); correr(); });
-  $("fijar").addEventListener("click", () => { ref = actual; $("sub-tabla").textContent = "Base 2019, referencia fijada y escenario actual"; if (actual) render(actual); });
+  $("cargar").addEventListener("click", () => { presetCargado = $("preset").value; controlesDesdeEscenario(preset(presetCargado)); correr(); });
+  $("reset").addEventListener("click", () => { $("preset").value = "base"; presetCargado = "base"; controlesDesdeEscenario(preset("base")); correr(); });
+  $("fijar").addEventListener("click", () => { ref = actual; nombreRef = nombreActual; escenarioRef = copia(escenarioActual); $("sub-tabla").textContent = "Base 2019, referencia fijada y escenario actual"; if (actual) render(actual); });
   $("copiar").addEventListener("click", async () => {
     const txt = $("csv").value;
     try { await navigator.clipboard.writeText(txt); $("copiar").textContent = "Copiado"; }
@@ -491,8 +575,8 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
   // ---- carga de datos --------------------------------------------------------------------
   async function cargar() {
     try {
-      let resp = await fetch("datos.json");                   // publicado sin comprimir (el servidor comprime en tránsito)
-      if (!resp.ok) resp = await fetch("datos.json.gz");          // copia local comprimida
+      let resp = await fetch("datos.json.gz");                   // distribución comprimida
+      if (!resp.ok) resp = await fetch("datos.json");          // respaldo local sin comprimir
       if (!resp.ok) throw new Error("no se pudo descargar la base del modelo");
       const buf = new Uint8Array(await resp.arrayBuffer());
       let txt;
@@ -507,7 +591,7 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
       modelo = new MicroSim.Modelo(D);
       construirControles();
       controlesDesdeEscenario(preset("base"));
-      base = modelo.simular({ ...D.escenario_base, passthrough: 0.25, elasticidad_gasto: 0.8 });
+      escenarioActual = preset("base"); base = modelo.simular(escenarioActual);
       $("cargando").hidden = true; $("contenido").hidden = false;
       render(base);
       $("estado").textContent = `${num(D.meta.n_personas)} personas · ${num(D.meta.n_hogares)} hogares · base ENAHO ${D.meta.anio_base}`;

@@ -1,0 +1,10 @@
+{
+  "version": "0.2.0",
+  "escenarios_equivalentes": 26,
+  "entradas_invalidas_rechazadas": 10,
+  "neutralidad_nominal": true,
+  "cierre_contable": true,
+  "metas_verificadas": true,
+  "tolerancia_relativa_equivalencia": 1e-08,
+  "tolerancia_absoluta_equivalencia": 1e-08
+}

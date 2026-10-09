@@ -114,6 +114,9 @@ def construir(anio: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     p = p.merge(t[KEYS + ["codperso", "estado", "sector", "ing_lab", "afp", "independiente", "fac500a"]],
                 how="left", on=KEYS + ["codperso"])
     p["estado"] = p.estado.fillna(0).astype(int)
+    # Los adultos sin respuesta laboral se conservan como inactivos (supuesto
+    # explícito; evita estimar una quinta categoría "menor de 14" entre adultos).
+    p.loc[(p.edad >= 14) & (p.estado == 0), "estado"] = 1
     p.loc[p.edad < 14, "estado"] = 0
     p["sector"] = p.sector.fillna(0).astype(int)
     p["ing_lab"] = p.ing_lab.fillna(0.0)
@@ -133,6 +136,11 @@ def construir(anio: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     lab_hh = p.groupby("hhid").ing_lab.sum().rename("lab_500")
     h = h.merge(lab_hh, on="hhid", how="left")
     h["lab_500"] = h.lab_500.fillna(0.0)
+    # Mantener el ingreso individual observado y cerrar exactamente la Sumaria.
+    # Es una discrepancia estadística firmada, no una transferencia ni renta.
+    h["ajuste_contable"] = h.ing_pc * h.mieperho - h.lab_500 - h[[
+        "tr_juntos", "tr_p65", "tr_pub_otros", "tr_privadas", "remesas", "rentas",
+        "alq_imputado", "extraord", "otros_nolab"]].sum(axis=1)
     h = h.merge(comp, on="hhid", how="left")
     h["anio"] = anio
     p["anio"] = anio
@@ -140,7 +148,7 @@ def construir(anio: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     cols_h = ["hhid", "anio", "peso", "mieperho", "dpto", "dominio", "urbano", "gasto_pc", "ing_pc", "linea",
               "linpe", "pobre", "pobre_ext", "lab_500", "lab_sumaria", "tr_juntos", "tr_p65", "tr_pub_otros",
               "tr_privadas", "remesas", "rentas", "alq_imputado", "extraord", "otros_nolab",
-              "n_menores", "n_adultos", "n_ocupados"]
+              "ajuste_contable", "n_menores", "n_adultos", "n_ocupados"]
     cols_p = ["hhid", "anio", "codperso", "peso", "peso_pob", "edad", "gedad", "mujer", "jefe", "conyuge",
               "educ", "estudia", "estado", "sector", "ing_lab", "afp", "independiente", "urbano", "dominio",
               "dpto", "n_menores", "n_adultos", "otros_ocupados"]

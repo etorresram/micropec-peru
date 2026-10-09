@@ -26,8 +26,8 @@ for r in bk.itertuples():
 TAB_BK = "\n".join(filas)
 EAM = f(bk.error_pp.abs().mean(), 1)
 
-# tabla de sensibilidad (bonos = sí, passthrough 0,25)
-s = sens[(sens.bonos) & (sens.passthrough == 0.25)].copy()
+# tabla de sensibilidad (sin bonos adicionales, passthrough 0,25)
+s = sens[(~sens.bonos) & (sens.passthrough == 0.25)].copy()
 nombres = {"solo_pbi": "Solo PBI sectorial", "agregado": "Ingreso medio + PBI sectorial", "sectorial": "Ingreso por sector",
            "sector_area": "Ingreso por sector y área"}
 filas = []
@@ -38,7 +38,7 @@ for modo in ["solo_pbi", "agregado", "sectorial", "sector_area"]:
 TAB_SENS = "\n".join(filas)
 sb = sens[(~sens.bonos) & (sens.passthrough == 0.25) & (sens.modo == "sector_area") & (sens.elasticidad == 0.8)].iloc[0]
 EAM_SIN_BONO = f(sb.EAM, 2)
-sp = sens[(sens.bonos) & (sens.modo == "solo_pbi") & (sens.elasticidad == 0.8) & (sens.passthrough == 1.0)].iloc[0]
+sp = sens[(~sens.bonos) & (sens.modo == "solo_pbi") & (sens.elasticidad == 0.8) & (sens.passthrough == 1.0)].iloc[0]
 SESGO_PBI = f(sp.sesgo, 1)
 
 # insumos macro
@@ -67,3 +67,4 @@ for k, v in {"TAB_BK": TAB_BK, "EAM": EAM, "TAB_SENS": TAB_SENS, "TAB_INS": TAB_
 open(ROOT / "docs" / "nota_metodologica.tex", "w", encoding="utf-8").write(tex)
 r = subprocess.run(["tectonic", "-o", str(ROOT / "docs"), str(ROOT / "docs" / "nota_metodologica.tex")], capture_output=True, text=True)
 print(r.stdout[-1500:], r.stderr[-3000:])
+r.check_returncode()

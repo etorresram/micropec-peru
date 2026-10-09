@@ -3,137 +3,129 @@
 \usepackage[T1]{fontenc}
 \usepackage[spanish,es-tabla]{babel}
 \usepackage[margin=2.3cm]{geometry}
-\usepackage{lmodern,microtype}
-\usepackage{booktabs,graphicx,amsmath,array}
+\usepackage{lmodern,microtype,booktabs,graphicx,amsmath,array}
 \usepackage[hidelinks]{hyperref}
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf}
 \setlength{\parskip}{4pt}
-\decimalcomma
-\title{\textbf{Microsimulación de Pobreza}\\\large Un modelo de microsimulación macro-micro de pobreza y distribución del ingreso para el Perú\\\normalsize Nota metodológica y validación}
+\setlength{\emergencystretch}{1em}
+\title{\textbf{Microsimulación de Pobreza}\\\large Modelo macro-micro para el Perú\\\normalsize Nota metodológica, reconstrucción histórica y verificación}
 \author{Eric Torres Ramírez\\\small\texttt{etorresram@gmail.com}}
-\date{Octubre de 2026}
+\date{Octubre de 2026 \textbullet{} Versión 0.2.0}
 \begin{document}
 \maketitle
-\vspace{-8pt}
 \begin{abstract}
-\noindent Esta nota documenta un modelo de microsimulación que combina los microdatos de la Encuesta Nacional de Hogares (ENAHO) del Perú con series macroeconómicas y del mercado laboral para proyectar la pobreza y la distribución del ingreso y construir escenarios contrafactuales. Sigue el enfoque de modelos de generación de ingresos del hogar (Bourguignon, Ferreira y Lustig, 2005) en su versión \emph{top-down} no paramétrica: un logit multinomial de estado laboral, uno de sector y ecuaciones de Mincer por segmento se estiman en la ENAHO 2019; la simulación reasigna estados laborales hasta cuadrar las metas agregadas, reescala los ingresos con el PBI sectorial, los precios y los agregados laborales, actualiza los ingresos no laborales y traslada el cambio del ingreso al gasto per cápita con el que el INEI mide la pobreza. Validado por \emph{backcasting} contra 2020--2024, el modelo reproduce la pobreza nacional con un error absoluto medio de 1,4 puntos porcentuales. Acompañan a la nota el código reproducible (Python), una interfaz para usuarios no técnicos que corre el mismo motor en el navegador (JavaScript, con prueba de equivalencia) y un manual de usuario. Es una muestra de trabajo preparada para la consultoría del Grupo de Pobreza del BID \emph{Desarrollo de un modelo de micro-simulación}.
+\noindent Prototipo de microsimulación estática para explorar escenarios de empleo, ingresos, precios y políticas a partir de la ENAHO 2019. Combina modelos paramétricos de elección ocupacional e ingresos con reasignación por probabilidades y calibración a agregados. La pobreza se calcula sobre gasto, con elasticidad respecto del ingreso real. Python y JavaScript implementan el mismo escenario, incluyendo composición demográfica, líneas regionales e ingresos por sector y área. La reconstrucción 2020--2024 obtiene un error absoluto medio nacional de 3,2 puntos porcentuales. Este resultado utiliza agregados contemporáneos de las encuestas evaluadas; no mide capacidad predictiva fuera de muestra. Es una muestra de trabajo, no una herramienta oficial del BID ni un pronóstico oficial del INEI.
 \end{abstract}
 
-\section{Objetivo y alcance}
-El modelo responde dos preguntas: (i) dada una trayectoria macroeconómica (PBI por sector, empleo, informalidad, inflación, transferencias, remesas), ¿qué pasa con la pobreza, la pobreza extrema y la desigualdad?; y (ii) ¿cuál es el impacto distributivo de un choque o de una política (un bono, un retiro extraordinario de fondos de pensiones, un cambio en Juntos o Pensión~65)? Está construido para un país, el Perú, pero el motor no contiene nada específico del país: opera sobre dos tablas (personas y hogares) con un diccionario de columnas fijo y sobre un diccionario de insumos macro, de modo que extenderlo a la base armonizada del BID exige solo reescribir el módulo de preparación de datos y la correspondencia sector--PBI.
+\section{Alcance y datos}
+El modelo representa un período comparado con 2019. No estima respuestas de equilibrio general ni identifica efectos causales. Cada escenario mantiene la estructura de hogares de la base y modifica sus pesos, estados laborales, ingresos y gasto. El código y la interfaz están disponibles en \url{https://github.com/etorresram/microsim-pobreza} y \url{https://etorresram.github.io/microsim-pobreza/}.
 
-\section{Datos}
-\paragraph{Microdatos.} ENAHO anual 2019--2024 (INEI), módulos 200 (miembros), 300 (educación), 500 (empleo e ingresos) y Sumaria (ingresos, gastos y pobreza del hogar), descargados directamente del portal de microdatos del INEI con el script \texttt{00\_descargar.py}. El año base es 2019 (34\,565 hogares, 121\,007 personas, 91\,668 de 14 años y más); 2020--2024 se usan solo para construir los insumos observados y para la validación. La base reproduce exactamente la pobreza oficial de cada año (20,2; 30,1; 25,9; 27,5; 29,0 y 27,6\,\%).
+\paragraph{Microdatos.} ENAHO anual 2019--2024, módulos 200, 300, 500 y Sumaria. La base contiene 34\,565 hogares, 121\,007 personas y 91\,668 personas de 14 años y más. El gasto per cápita, ingreso total, tamaño del hogar y líneas se toman de la Sumaria; los ingresos individuales provienen del módulo 500. Montos mensuales en soles. Las tasas laborales del modelo usan el factor del hogar para mantener coherencia con la distribución de bienestar; pueden diferir de publicaciones que usan factores individuales y otras poblaciones de referencia. Los adultos sin estado laboral observado se conservan como inactivos: es un supuesto de preparación, no un estado observado.
 
-\paragraph{Ingreso laboral individual.} Suma de los nueve componentes del módulo 500 (ingreso principal y secundario, dependiente e independiente, monetario y en especie, extraordinarios), anualizados e imputados por el INEI, expresados por mes. Agregados por hogar, su correlación con el ingreso laboral de la Sumaria es 0,99.
+\paragraph{Cierre contable.} Se conservan los ingresos individuales originales. Al ingreso laboral agregado se suman nueve componentes no laborales y un \emph{ajuste contable firmado} igual a la diferencia respecto del ingreso total de la Sumaria. Este ajuste puede ser negativo y no representa una transferencia. Se indexa al IPC, manteniendo su valor real en los escenarios. La identidad del ingreso se verifica para cada hogar. La existencia del ajuste no elimina la necesidad de investigar diferencias entre definiciones y módulos; su supuesto de estabilidad es una limitación del prototipo.
 
-\paragraph{Ingreso no laboral del hogar.} Nueve componentes de la Sumaria: Juntos, Pensión~65, otras transferencias públicas (Beca~18, bono gas, bonos extraordinarios, donaciones públicas), pensiones y transferencias privadas internas, remesas del exterior, rentas de la propiedad, alquiler imputado, ingresos extraordinarios y un residuo que cierra la cuenta con el ingreso neto total.
+\paragraph{Informalidad 2024.} En los archivos utilizados no está disponible \texttt{ocupinf}. Se imputa mediante un logit entrenado en 2023. El acierto de 98,4\,\% corresponde a una partición aleatoria de 2023; no valida el traslado temporal a 2024. El 72,4\,\% del resumen de imputación usa ocupados del módulo 500 y \texttt{fac500a}; la tasa de los insumos siguientes usa miembros del hogar y pesos de Sumaria. Las cifras tienen distintos universos y ponderadores.
 
-\paragraph{Estados laborales.} Para las personas de 14 años y más: inactivo, desocupado, ocupado informal y ocupado formal, según \texttt{ocu500} y \texttt{ocupinf} del INEI. El INEI no incluyó \texttt{ocupinf} en la base pública de 2024; la formalidad de ese año se imputa persona a persona con una regresión logística entrenada en 2023 sobre las variables que definen la informalidad oficial (categoría ocupacional, registro en SUNAT, tipo de contrato, tamaño de la empresa, afiliación a pensiones, sector, educación, edad y área), con un acierto de 98,4\,\% en una muestra de validación; la informalidad imputada de 2024 es 72,4\,\%.
+\paragraph{Agregados.} BCRPData aporta PBI sectorial, IPC de Lima, remesas y tipo de cambio. ENAHO aporta estructura demográfica, empleo, ingresos por sector y área, líneas regionales y transferencias. La reconstrucción usa la encuesta del año evaluado para estos agregados. Una proyección operativa requeriría fuentes disponibles a la fecha de corte y supuestos prospectivos documentados. El IPC de Lima es un deflactor común del prototipo; no captura toda la heterogeneidad de precios regionales.
 
-\paragraph{Sectores.} Seis ramas de la ocupación principal (CIIU Rev.~4): agropecuario y pesca; minería e hidrocarburos; manufactura; construcción; comercio; servicios (incluye electricidad y agua). Cada una tiene su serie de PBI real en BCRPData.
-
-\paragraph{Series macro.} Descargadas por la API de BCRPData (\texttt{02\_macro.py}): PBI real por sector (millones de soles de 2007), IPC de Lima (promedio anual), remesas del exterior (millones de US\$) y tipo de cambio. Las líneas de pobreza por dominio y área, y las tasas de ocupación, desempleo e informalidad, se calculan de la ENAHO de cada año; en operación vendrían de la EPEN o de proyecciones. El cuadro~\ref{tab:ins} resume los insumos observados.
-
-\begin{table}[h]\centering\footnotesize
-\caption{Insumos observados usados en el \emph{backcasting} (variación acumulada respecto de 2019, \%, salvo niveles)}\label{tab:ins}
+\begin{table}[ht]\centering\footnotesize
+\caption{Insumos históricos: variaciones acumuladas respecto de 2019 (\%), salvo tasas}
 \begin{tabular}{lrrrrrrr}\toprule
-Año & PBI real & IPC & Línea de & Ocupación & Informalidad & Ingreso laboral & Remesas \\
- & & & pobreza & (nivel) & (nivel) & real por ocupado & (S/) \\\midrule
+Año & PBI real & IPC & Línea & Ocupación & Informalidad & Ing. laboral & Remesas\\
+ & & & pobreza & nivel & nivel & real medio & soles\\\midrule
 2020 & -10,9 & 1,8 & 2,1 & 58,6 & 76,0 & -17,3 & -9,0 \\
 2021 & 1,0 & 5,9 & 7,5 & 66,2 & 77,6 & -14,4 & 25,5 \\
 2022 & 3,9 & 14,2 & 18,7 & 67,6 & 76,6 & -9,8 & 27,5 \\
 2023 & 3,5 & 21,4 & 27,6 & 66,4 & 74,9 & -8,4 & 49,2 \\
 2024 & 7,1 & 24,2 & 29,5 & 65,8 & 73,6 & -6,1 & 66,0 \\
 \bottomrule\end{tabular}
-\par\smallskip\raggedright\footnotesize Fuente: BCRPData e INEI (ENAHO). Base 2019: tasa de ocupación 68,8\,\%, desempleo 4,8\,\%, informalidad 73,6\,\%.
 \end{table}
 
-\section{Modelo base}
-\paragraph{Elección ocupacional.} Logit multinomial de los cuatro estados sobre edad y su cuadrado, sexo, educación (cuatro niveles), jefatura, cónyuge, asistencia escolar, área, dominio geográfico, número de menores y de adultos en el hogar y la interacción sexo~$\times$~menores. Acierto en muestra 65,7\,\%, pseudo-$R^2$ 0,25. De las probabilidades predichas se derivan $P(\text{ocupado})$, $P(\text{desocupado}\mid\text{no ocupado})$ y $P(\text{formal}\mid\text{ocupado})$, que ordenan quién cambia de estado cuando cambian los agregados.
+\section{Estimación y reasignación}
+Se estiman logits multinomiales de estado laboral y sector. Incluyen edad, sexo, educación, situación familiar, asistencia escolar, área, dominio y composición del hogar. El acierto dentro de muestra es 65,7\,\% y 61,0\,\%, respectivamente; no debe interpretarse como calidad predictiva de transiciones. Los logits no incorporan ponderadores de encuesta en esta versión. Las ecuaciones de log ingreso usan mínimos cuadrados ponderados por separado para trabajadores informales y formales (\(n=41\,189\) y \(n=14\,688\)). Los residuos se conservan para trabajadores de su segmento y se sortean de la distribución empírica para los demás, con semilla fija y sin corrección de selección. Son decisiones de modelación sujetas a sensibilidad y futuras mejoras.
 
-\paragraph{Sector.} Logit multinomial de los seis sectores entre los ocupados, con las mismas covariables más la formalidad (acierto 61,0\,\%, pseudo-$R^2$ 0,26). Para los no ocupados se predice con la formalidad más probable; el sector modal es el \emph{sector potencial}.
+Se reasignan ocupación, desempleo, formalidad y sector ordenando probabilidades predichas. Las personas son indivisibles: las metas laborales pueden desviarse por el peso de uno o pocos registros. Los resultados incluyen metas y valores logrados; no se presenta como ajuste exacto una reasignación discreta. Las predicciones de sector se mantienen fijas al cambiar formalidad; no constituyen un sistema estructural de decisiones conjuntas.
 
-\paragraph{Ecuaciones de ingreso.} Mínimos cuadrados ponderados del logaritmo del ingreso laboral mensual por segmento: informal ($n=$ 41\,189, $R^2=$ 0,26, $\sigma=$ 0,92) y formal ($n=$ 14\,688, $R^2=$ 0,25, $\sigma=$ 0,61), con las covariables anteriores y efectos de sector. Las brechas estimadas son las esperadas: la de las mujeres es -0,42 en el segmento informal y -0,18 en el formal; el premio por educación universitaria es 0,43 y 0,63. Cada persona conserva su residuo; a quien no está en un segmento se le asigna un residuo sorteado de la distribución empírica de ese segmento (semilla fija), de modo que los \emph{ingresos potenciales} formal e informal existen para todos y la simulación es determinista.
+\section{Calibración y cuentas del escenario}
+\paragraph{Demografía.} Los conteos por hogar de sexo, edad y área permiten calibrar pesos positivos a las metas de composición. Las metas se normalizan a la población total del escenario, no a la suma de pesos de hogares. La iteración exige error relativo máximo inferior a \(10^{-8}\); de lo contrario, el escenario se rechaza. La interfaz conserva estos grupos al modificar el crecimiento poblacional.
 
-\section{Módulo de simulación}
-Dado un escenario, el motor ejecuta siete pasos; el código de Python (\texttt{microsim/simular.py}) y el de JavaScript (\texttt{gui/motor.js}) implementan exactamente los mismos y una prueba automática verifica que coinciden.
-\begin{enumerate}\itemsep2pt
-\item \textbf{Reponderación.} Los factores de los hogares se escalan con el crecimiento poblacional; en el \emph{backcasting} se calibran además por \emph{raking} a los márgenes de población por sexo, grupo de edad y área.
-\item \textbf{Ocupación y desempleo.} Si la meta de ocupados supera a la base, entran los no ocupados con mayor $P(\text{ocupado})$ hasta cubrir la diferencia ponderada; si es menor, salen los ocupados con menor probabilidad. Entre los no ocupados, los de mayor $P(\text{desocupado})$ cubren la meta de desempleo.
-\item \textbf{Formalidad.} Igual mecanismo con $P(\text{formal}\mid\text{ocupado})$ hasta la meta de informalidad.
-\item \textbf{Sectores.} Los nuevos ocupados entran en su sector potencial; luego los sectores en déficit respecto de la estructura meta toman de los sectores en superávit a los trabajadores con mayor probabilidad predicha de pertenecer al sector de destino.
-\item \textbf{Ingresos laborales.} Quien sigue en su segmento conserva su ingreso observado; quien entra o cambia de segmento recibe su ingreso potencial, ajustado por el efecto de sector si cambia de rama. Después, el ingreso de cada sector $s$ se multiplica por
+\paragraph{Cuatro modos de ingreso laboral.} Después de las transiciones se construyen ingresos provisionales. En modo \emph{solo PBI}, el factor nominal sectorial es
 \[
-f_s=\underbrace{\frac{g_{\text{lab}}\,\big(\mathrm{VA}_s/L_s\big)^{\pi}}{\sum_k \omega_k\,\big(\mathrm{VA}_k/L_k\big)^{\pi}}}_{\text{real}}\times\;\mathrm{IPC},
+f_s=\left(\frac{VA_{s,t}/VA_{s,0}}{L_{s,t}/L_{s,0}}\right)^{\pi} IPC_t.
 \]
-donde $\mathrm{VA}_s$ es el PBI real del sector (factor respecto de la base), $L_s$ el empleo simulado del sector, $\omega_k$ la participación de cada sector en la masa salarial de 2019, $\pi$ el \emph{passthrough} del PBI sectorial por ocupado a los ingresos y $g_{\text{lab}}$ el crecimiento real del ingreso laboral medio (observado en la EPEN/ENAHO o fijado por el usuario). Sin $g_{\text{lab}}$ el modelo opera en modo ``solo PBI'' ($f_s=(\mathrm{VA}_s/L_s)^{\pi}\,\mathrm{IPC}$). Para el \emph{backcasting} se dispone además de factores observados por sector y por sector~$\times$~área.
-\item \textbf{Ingresos no laborales y políticas.} Cada componente crece con su factor: Juntos, Pensión~65 y otras transferencias públicas con su ejecución; pensiones y transferencias privadas, alquiler imputado y residuo con la inflación; remesas con la serie del BCRP en soles; rentas con el PBI nominal. Dos instrumentos de política se modelan por fuera: un \emph{bono} (monto anual por hogar, deciles de gasto cubiertos y proporción consumida) y un \emph{retiro extraordinario de AFP} (proporción de afiliados que retira, identificados con la afiliación declarada en la ENAHO y un sorteo fijo; monto medio y proporción consumida).
-\item \textbf{Gasto, líneas e indicadores.} La pobreza oficial del Perú se mide con el gasto; el modelo traslada el cambio del ingreso total del hogar al gasto per cápita, $g_t=g_0\,(Y_t/Y_0)^{\varepsilon}$, con $\varepsilon$ la elasticidad gasto--ingreso, y actualiza las líneas de pobreza total y extrema con su propia inflación (por dominio y área en el \emph{backcasting}). Se calculan incidencia, brecha y severidad de la pobreza, pobreza extrema, Gini del gasto y del ingreso, curvas de incidencia del crecimiento por decil, y desagregaciones por área, dominio y departamento.
-\end{enumerate}
-El escenario neutro (todos los factores en uno y las metas en sus valores de 2019) reproduce exactamente la pobreza oficial del año base, lo que verifica la consistencia interna del motor.
+En modo \emph{agregado}, este patrón de diferenciales se normaliza para que el ingreso medio ponderado simulado coincida con la meta nominal \(\bar y_0 g_{lab}IPC_t\). Los modos \emph{sectorial} y \emph{sector y área} ajustan cada celda a su ingreso medio objetivo después de las transiciones. En esos dos modos el PBI y su \emph{passthrough} no determinan los ingresos: la interfaz desactiva dichos controles. Los factores observados no se aplican ciegamente a una composición laboral distinta.
 
-\section{Validación}
-\paragraph{Backcasting.} Con el modelo estimado en 2019 y los insumos observados de cada año (cuadro~\ref{tab:ins}), más los bonos de la pandemia ingresados como política explícita (2020: S/\,1\,000 por hogar a los deciles 1--7; 2021: S/\,1\,225 a los deciles 1--4, aproximación de los bonos Universal Familiar, Rural, Independiente y Yanapay), el modelo reproduce la trayectoria de la pobreza 2020--2024 (cuadro~\ref{tab:bk}, figura~\ref{fig:bk}). El error absoluto medio nacional es de 1,4 pp; el modelo capta el salto de la pandemia (29,3\,\% simulado vs.\ 30,1\,\% oficial en 2020) y el nivel más alto de 2022--2024 pese al crecimiento del PBI, que en el modelo se explica por la caída del ingreso laboral real, el encarecimiento de la canasta por encima del IPC y la mayor informalidad. La pobreza urbana se subestima entre 2 y 4~pp y la rural se sobreestima entre 4 y 7~pp a partir de 2022: la curva de incidencia observada en el ámbito rural fue fuertemente favorable a los deciles medios (figura~\ref{fig:gic}), un patrón que un reescalado por sector no reproduce y que sugiere incorporar heterogeneidad regional del ingreso agropecuario en una versión completa.
+\paragraph{Ingresos no laborales.} Juntos, Pensión 65, otras transferencias públicas y remesas se calibran a totales nominales (total base por factor de crecimiento), teniendo en cuenta los pesos nuevos. Se conserva el patrón de receptores de 2019. Los demás componentes se multiplican por sus factores por hogar. Las transferencias históricas ya pueden contener bonos extraordinarios: no se agrega otro bono de pandemia. Un bono adicional es siempre una política contrafactual explícita.
 
-\begin{table}[h]\centering\small
-\caption{\emph{Backcasting} 2020--2024: pobreza oficial (INEI) y simulada (\% de la población)}\label{tab:bk}
+\paragraph{Gasto real y políticas.} Sea \(Y_{h,t}^{reg}\) el ingreso corriente sin el bono nuevo, \(B_{h,t}\) dicho bono mensual y \(A_{h,t}\) el retiro mensualizado de AFP. Con factores de precios relativos a 2019:
+\[
+g_{h,t}=g_{h,0}\,IPC_t
+\left[\frac{\max(Y_{h,t}^{reg}/IPC_t,F_h)}{\max(Y_{h,0},F_h)}\right]^\varepsilon
++\frac{c_B B_{h,t}+c_A A_{h,t}}{n_h},
+\]
+donde \(F_h=0{,}1g_{h,0}n_h\) evita razones inestables con ingresos muy bajos, \(n_h\) es el tamaño del hogar y \(c_B,c_A\) las proporciones consumidas. La elasticidad opera sobre ingresos reales. Una variación puramente nominal de todos los ingresos y precios deja invariantes pobreza y gasto real; esta propiedad se prueba automáticamente. El piso es una regularización explícita, no un ingreso observado.
+
+El ingreso corriente per cápita es \((Y_{h,t}^{reg}+B_{h,t})/n_h\), independientemente de la propensión a consumir. Los retiros de activos aumentan liquidez y potencial consumo, pero no ingreso corriente. No se modelan su costo previsional futuro ni restricciones de saldo individual: el escenario AFP es ilustrativo. El bono se focaliza por deciles del gasto base; se reportan su costo anual y hogares cubiertos. Las líneas de pobreza total y extrema conservan factores por dominio y área en escenarios históricos.
+
+\paragraph{Indicadores.} Se calculan pobreza, pobreza extrema, brecha, severidad, Gini, resultados territoriales y curva de incidencia. Esta última compara medias de deciles \emph{reordenados en cada distribución}, con pesos base para 2019 y pesos simulados para el escenario; no sigue una cohorte fija de hogares. Los ingresos negativos se truncan a cero únicamente para el Gini del ingreso.
+
+\section{Reconstrucción histórica y sensibilidad}
+Los supuestos centrales son \(\varepsilon=0{,}8\) y, cuando corresponde, \(\pi=0{,}25\). Se mantienen como supuestos de trabajo, sin seleccionarlos otra vez para minimizar el error de la versión corregida. Se usan ingresos por sector y área para la reconstrucción principal. El error absoluto medio es 3,2 pp. El uso de agregados contemporáneos y la exploración previa de parámetros impiden interpretar esta cifra como validación predictiva independiente. Reproducir 2019 es una prueba de identidad, no una evaluación externa.
+
+\begin{table}[ht]\centering\small
+\caption{Pobreza observada y reconstruida (\%); versión 0.2.0}
 \begin{tabular}{lrrrrrrrrr}\toprule
- & \multicolumn{3}{c}{Pobreza total} & \multicolumn{2}{c}{Pobreza extrema} & \multicolumn{2}{c}{Urbana} & \multicolumn{2}{c}{Rural}\\
-\cmidrule(lr){2-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(lr){9-10}
-Año & Oficial & Simulada & Error (pp) & Oficial & Sim. & Oficial & Sim. & Oficial & Sim.\\\midrule
-2020 & 30,1 & 29,3 & -0,8 & 5,1 & 5,0 & 26,0 & 23,9 & 45,7 & 50,0 \\
-2021 & 25,9 & 24,1 & -1,8 & 4,1 & 2,8 & 22,3 & 20,4 & 39,7 & 38,4 \\
-2022 & 27,5 & 26,9 & -0,6 & 5,0 & 4,1 & 24,1 & 22,1 & 41,1 & 46,1 \\
-2023 & 29,0 & 27,4 & -1,7 & 5,7 & 4,9 & 26,4 & 22,6 & 39,8 & 47,1 \\
-2024 & 27,6 & 25,5 & -2,1 & 5,5 & 4,4 & 24,8 & 21,1 & 39,3 & 44,3 \\
+ & \multicolumn{3}{c}{Total} & \multicolumn{2}{c}{Extrema} & \multicolumn{2}{c}{Urbana} & \multicolumn{2}{c}{Rural}\\
+Año & Obs. & Sim. & Error pp & Obs. & Sim. & Obs. & Sim. & Obs. & Sim.\\\midrule
+2020 & 30,1 & 35,4 & 5,2 & 5,1 & 7,9 & 26,0 & 28,6 & 45,7 & 61,1 \\
+2021 & 25,9 & 27,1 & 1,3 & 4,1 & 4,1 & 22,3 & 22,3 & 39,7 & 46,0 \\
+2022 & 27,5 & 25,3 & -2,2 & 5,0 & 4,0 & 24,1 & 20,5 & 41,1 & 44,6 \\
+2023 & 29,0 & 25,6 & -3,4 & 5,7 & 4,4 & 26,4 & 21,0 & 39,8 & 44,8 \\
+2024 & 27,6 & 23,6 & -4,0 & 5,5 & 3,8 & 24,8 & 19,6 & 39,3 & 40,8 \\
 \bottomrule\end{tabular}
-\par\smallskip\raggedright\footnotesize Parámetros: ingresos laborales observados por sector y área, \emph{passthrough} 0,25, elasticidad gasto--ingreso 0,8, bonos de la pandemia explícitos.
 \end{table}
-
-\begin{figure}[h]\centering
-\includegraphics[width=\textwidth]{../output/figuras/backcast.pdf}
-\caption{Pobreza simulada con insumos macro observados vs.\ cifra oficial, 2019--2024.}\label{fig:bk}
+\begin{figure}[ht]\centering
+\includegraphics[width=.92\textwidth]{../output/figuras/backcast.pdf}
+\caption{Reconstrucción con agregados contemporáneos, no pronósticos ex ante.}
 \end{figure}
 
-\paragraph{Sensibilidad.} El cuadro~\ref{tab:sens} compara cuatro modos de traslado de la macroeconomía a los ingresos laborales y tres elasticidades. Dos lecciones. Primera, el PBI sectorial por ocupado \emph{no} es un buen predictor del ingreso laboral en el Perú de 2020--2024: el modo ``solo PBI'' sobreestima los ingresos y subestima la pobreza en -5,7~pp en promedio (con $\pi=1$), porque la participación del trabajo en el valor agregado cayó y la inflación erosionó los salarios reales; por eso el modelo exige, o bien un indicador observado del ingreso laboral medio (EPEN), o bien un supuesto explícito sobre su crecimiento real. Segunda, una elasticidad gasto--ingreso menor que uno (0,6--0,8) ajusta mejor que la transmisión completa, consistente con suavización del consumo; se adopta 0,8 como valor por defecto. Sin los bonos explícitos de la pandemia el error medio del modo adoptado sube a 1,53~pp.
-
-\begin{table}[h]\centering\small
-\caption{Sensibilidad del \emph{backcasting}: error absoluto medio 2020--2024 (pp), \emph{passthrough} 0,25, bonos explícitos}\label{tab:sens}
+La sensibilidad siguiente es descriptiva: cambiar de modo cambia la información utilizada. No compara pronósticos hechos con el mismo conjunto de información. Los errores territoriales deben evaluarse junto con el promedio nacional. No se atribuyen sus causas a mecanismos específicos sin evidencia adicional. No se han estimado intervalos de confianza que incorporen diseño muestral, parámetros e imputaciones.
+\begin{table}[ht]\centering\footnotesize
+\caption{Error absoluto medio 2020--2024 (pp), sin bonos adicionales}
 \begin{tabular}{llrrrrr}\toprule
-Modo de ingresos laborales & $\varepsilon$ & EAM & Sesgo & EAM extrema & EAM urbana & EAM rural\\\midrule
-Solo PBI sectorial & 0,6 & 3,64 & -3,64 & 1,10 & 5,82 & 7,23 \\
-Solo PBI sectorial & 0,8 & 4,89 & -4,89 & 1,30 & 6,84 & 5,67 \\
-Solo PBI sectorial & 1,0 & 5,97 & -5,97 & 1,44 & 7,69 & 4,66 \\
-Ingreso medio + PBI sectorial & 0,6 & 0,87 & -0,25 & 0,41 & 2,67 & 9,61 \\
-Ingreso medio + PBI sectorial & 0,8 & 0,64 & -0,17 & 0,26 & 2,43 & 9,01 \\
-Ingreso medio + PBI sectorial & 1,0 & 1,80 & -0,18 & 0,55 & 2,95 & 8,33 \\
-Ingreso por sector & 0,6 & 1,38 & -1,38 & 0,78 & 3,22 & 6,10 \\
-Ingreso por sector & 0,8 & 1,77 & -1,77 & 0,91 & 3,27 & 4,45 \\
-Ingreso por sector & 1,0 & 2,46 & -2,22 & 1,18 & 3,39 & 3,39 \\
-Ingreso por sector y área & 0,6 & 1,14 & -1,14 & 0,72 & 2,87 & 5,88 \\
-Ingreso por sector y área & 0,8 & 1,40 & -1,40 & 0,85 & 2,74 & 4,57 \\
-Ingreso por sector y área & 1,0 & 2,20 & -1,71 & 1,17 & 2,70 & 3,63 \\
+Modo & \(\varepsilon\) & EAM & Sesgo & Extrema & Urbana & Rural\\\midrule
+Solo PBI sectorial & 0,6 & 5,53 & -5,53 & 1,46 & 7,70 & 3,71 \\
+Solo PBI sectorial & 0,8 & 4,91 & -4,91 & 1,14 & 7,07 & 3,83 \\
+Solo PBI sectorial & 1,0 & 4,33 & -4,33 & 0,98 & 6,51 & 4,47 \\
+Ingreso medio + PBI sectorial & 0,6 & 2,33 & -1,55 & 0,78 & 3,99 & 8,31 \\
+Ingreso medio + PBI sectorial & 0,8 & 2,67 & 0,54 & 1,01 & 3,49 & 10,59 \\
+Ingreso medio + PBI sectorial & 1,0 & 3,29 & 2,47 & 1,36 & 3,87 & 12,87 \\
+Ingreso por sector & 0,6 & 3,03 & -2,41 & 1,28 & 4,27 & 5,05 \\
+Ingreso por sector & 0,8 & 3,35 & -0,63 & 1,38 & 3,66 & 6,23 \\
+Ingreso por sector & 1,0 & 3,89 & 1,06 & 1,80 & 4,05 & 7,18 \\
+Ingreso por sector y área & 0,6 & 2,96 & -2,41 & 1,29 & 4,26 & 5,01 \\
+Ingreso por sector y área & 0,8 & 3,22 & -0,62 & 1,38 & 3,39 & 6,31 \\
+Ingreso por sector y área & 1,0 & 3,75 & 1,07 & 1,79 & 3,77 & 7,37 \\
 \bottomrule\end{tabular}
 \end{table}
-
-\begin{figure}[h]\centering
-\includegraphics[width=0.55\textwidth]{../output/figuras/gic_2024.pdf}
-\caption{Curva de incidencia del crecimiento 2019--2024, observada y simulada.}\label{fig:gic}
+\begin{figure}[ht]\centering
+\includegraphics[width=.75\textwidth]{../output/figuras/gic_2024.pdf}
+\caption{Curva de incidencia nacional 2019--2024, con deciles reordenados.}
 \end{figure}
 
-\section{Interfaz, reproducibilidad y extensión}
-\paragraph{Interfaz.} \texttt{gui/index.html} corre el motor en el navegador sobre la base exportada (91\,668 personas de 14+ y 34\,565 hogares, 12~MB sin comprimir, 2,7~MB comprimidos). El usuario carga un escenario predefinido (año base, cualquier año observado 2020--2024 con su cifra oficial al lado, un choque ilustrativo o el retiro de AFP), mueve controles agrupados (economía, mercado laboral, precios y líneas, ingresos no laborales, políticas, supuestos) y obtiene en alrededor de un segundo los indicadores, la curva de incidencia, la pobreza por dominio y por departamento y una tabla exportable como CSV; puede fijar un escenario como referencia para comparar dos. \texttt{07\_verificar\_gui.py} corre el mismo escenario en Python y en JavaScript y comprueba que los resultados coinciden (diferencias relativas menores que $10^{-3}$, atribuibles al orden de las sumas en punto flotante).
+\section{Verificación, interfaz y extensión}
+\texttt{07\_verificar\_gui.py} compara Python y JavaScript sobre la misma base sin redondeo, para cada año y los cuatro modos, además del año base y políticas. Verifica indicadores, dominios, departamentos, curvas, metas y costos, con tolerancias absoluta y relativa de \(10^{-8}\). También prueba neutralidad nominal, cierre contable, cuentas de políticas y rechazo de entradas inválidas. La prueba usa Node.js y no depende de macOS. Su resultado se guarda en \texttt{output/verificacion.json}.
 
-\paragraph{Reproducibilidad.} \texttt{run\_all.sh} ejecuta de principio a fin: descarga de la ENAHO del INEI, imputación de la informalidad 2024, preparación, series del BCRP, estimación, validación con figuras y tablas, exportación de la interfaz y prueba de equivalencia (unos diez minutos). El código es modular (paquete \texttt{microsim}: \texttt{config}, \texttt{preparar}, \texttt{estimar}, \texttt{simular}, \texttt{indicadores}, \texttt{macro}, \texttt{informalidad}), con semillas fijas y sin rutas absolutas. 
+La interfaz conserva el escenario completo, distingue cambios personalizados, permite guardar/cargar supuestos JSON y exporta resultados CSV y gráficos SVG. Los escenarios importados se validan antes de ejecutarse. El CSV incluye unidades, cifras observadas disponibles, referencia, resultados territoriales, supuestos, versión y diagnósticos. Los tiempos de cálculo dependen del equipo y de la calibración demográfica.
 
-\paragraph{Qué haría la versión completa.} (i) Estimación por país sobre la base armonizada del BID con el mismo motor; (ii) reponderación demográfica con las proyecciones de población de CELADE; (iii) ingresos laborales por sector~$\times$~región alimentados con la EPEN o su equivalente en cada país; (iv) módulo de hogares para transferencias nuevas con reglas de elegibilidad (no solo deciles); (v) intervalos de incertidumbre por remuestreo de los residuos y de los parámetros; (vi) interfaz multi-país con los escenarios macro del Departamento de Investigación del Banco cargados por defecto.
+\texttt{run\_all.sh} prepara datos, construye insumos, estima, reconstruye, exporta, verifica y genera esta nota. Requiere Python, Node.js y Tectonic; las versiones Python están fijadas en \path{requirements.lock.txt}. Las descargas y las revisiones de fuentes externas pueden alterar los resultados: conservar instantáneas permite reproducir una versión. El modo sin descarga utiliza los archivos locales existentes. Las pruebas comprueban propiedades específicas, no garantizan validez económica general.
+
+La extensión multinacional requiere adaptar definición de bienestar (ingreso o gasto), líneas, programas, grupos demográficos, sectores y fuentes macro, además de estimar y validar por país. El motor contiene convenciones peruanas que aún deben generalizarse. Un siguiente ejercicio debe congelar especificación y fecha de información antes de evaluar años adicionales; incorporar referencias simples, incertidumbre, fuentes laborales externas y validación territorial. El prototipo no reemplaza ese trabajo.
 
 \begin{thebibliography}{9}\small
-\bibitem{bfl} Bourguignon, F., F.~H.~G.~Ferreira y N.~Lustig (eds.) (2005). \emph{The Microeconomics of Income Distribution Dynamics in East Asia and Latin America}. Banco Mundial y Oxford University Press.
-\bibitem{olivieri} Olivieri, S., S.~Radyakin, S.~Kolenikov, M.~Lokshin, A.~Narayan y C.~Sánchez-Páramo (2014). \emph{Simulating Distributional Impacts of Macro-dynamics: Theory and Practical Applications}. Banco Mundial.
-\bibitem{inei} INEI (2025). \emph{Perú: Evolución de la pobreza monetaria 2015--2024. Informe técnico}. Lima.
-\bibitem{azuara} Azuara, O. y E.~Torres (2023). \emph{Labor Poverty in Latin America and the Caribbean}. BID.
+\bibitem{bfl} Bourguignon, F., F. H. G. Ferreira y N. Lustig (eds.) (2005). \emph{The Microeconomics of Income Distribution Dynamics in East Asia and Latin America}. Banco Mundial y Oxford University Press.
+\bibitem{olivieri} Olivieri, S. et al. (2014). \emph{Simulating Distributional Impacts of Macro-dynamics: Theory and Practical Applications}. Banco Mundial.
+\bibitem{inei} INEI (2025). \emph{Perú: Evolución de la pobreza monetaria 2015--2024}.
 \end{thebibliography}
 \end{document}

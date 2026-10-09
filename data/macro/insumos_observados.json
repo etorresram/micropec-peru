@@ -186,8 +186,8 @@
     ]
    },
    "bono": {
-    "monto_anual": 1000.0,
-    "deciles": 7,
+    "monto_anual": 0.0,
+    "deciles": 0,
     "mpc": 1.0
    },
    "ipc": 1.0182730265249895,
@@ -344,8 +344,8 @@
     ]
    },
    "bono": {
-    "monto_anual": 1225.0,
-    "deciles": 4,
+    "monto_anual": 0.0,
+    "deciles": 0,
     "mpc": 1.0
    },
    "ipc": 1.0587902607644228,

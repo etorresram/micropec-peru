@@ -3,10 +3,10 @@
  * Funciona en el navegador y en cualquier intérprete JS (sin dependencias). */
 (function (global) {
   "use strict";
-  const NOLAB = ["tr_juntos", "tr_p65", "tr_pub_otros", "tr_privadas", "remesas", "rentas", "alq_imputado", "extraord", "otros_nolab"];
+  const NOLAB = ["tr_juntos", "tr_p65", "tr_pub_otros", "tr_privadas", "remesas", "rentas", "alq_imputado", "extraord", "otros_nolab", "ajuste_contable"];
   const FACT = { tr_juntos: "tr_juntos_factor", tr_p65: "tr_p65_factor", tr_pub_otros: "tr_pub_otros_factor",
     tr_privadas: "tr_privadas_factor", remesas: "remesas_factor", rentas: "rentas_factor", alq_imputado: "alq_factor",
-    extraord: "otros_factor", otros_nolab: "otros_factor" };
+    extraord: "otros_factor", otros_nolab: "otros_factor", ajuste_contable: "ipc" };
 
   function gini(x, w) {
     const n = x.length, o = new Array(n);
@@ -55,12 +55,47 @@
     return b > 0 ? a / b : NaN;
   }
 
+  function validarEscenario(e, D) {
+    const num = (x,lo,hi,k) => { if (typeof x !== "number" || !Number.isFinite(x) || x < lo || x > hi) throw Error("Valor inválido: " + k); };
+    for (const k of ["ipc","poblacion_factor","linea_factor_nacional","linpe_factor_nacional"]) num(e[k],.000001,100,k);
+    num(e.tasa_ocupacion,.000001,1,"tasa_ocupacion"); num(e.tasa_desempleo,0,.999999,"tasa_desempleo");
+    if (e.tasa_ocupacion > 1-e.tasa_desempleo+1e-9) throw Error("Ocupación y desempleo implican una PEA mayor que la población de 14+");
+    num(e.informalidad,0,1,"informalidad"); num(e.passthrough,0,1,"passthrough"); num(e.elasticidad_gasto,.01,3,"elasticidad_gasto");
+    const vec = (v,k,lo=0) => { if (!Array.isArray(v) || v.length !== 6) throw Error("Se necesitan seis valores: " + k); for (const x of v) num(x,lo,100,k); };
+    vec(e.sector_shares,"sector_shares"); if (e.sector_shares.reduce((a,b) => a+b,0) <= 0) throw Error("Las participaciones sectoriales deben sumar más de cero");
+    vec(e.va_factor,"va_factor",.000001);
+    for (const k of new Set(Object.values(FACT))) num(e[k] === undefined ? 1 : e[k],0,100,k);
+    if (e.ing_lab_real_factor != null) num(e.ing_lab_real_factor,0,100,"ing_lab_real_factor");
+    if (e.ing_lab_real_factor_sector != null) vec(e.ing_lab_real_factor_sector,"ing_lab_real_factor_sector");
+    if (e.ing_lab_real_factor_sector_area != null) for (const u of ["0","1"]) vec(e.ing_lab_real_factor_sector_area[u],"ing_lab_real_factor_sector_area");
+    if (e.poblacion_grupos != null) {
+      const keys = D.demografia && D.demografia.claves;
+      if (!keys || keys.length !== Object.keys(e.poblacion_grupos).length || keys.some(k => !(k in e.poblacion_grupos))) throw Error("Grupos demográficos incompletos o desconocidos");
+      for (const x of Object.values(e.poblacion_grupos)) num(x,.000001,100,"poblacion_grupos");
+    }
+    if (e.lineas_factor != null) {
+      const keys = new Set(D.hogares.dom.map((d,h) => d+"_"+D.hogares.urb[h]));
+      if (keys.size !== Object.keys(e.lineas_factor).length || [...keys].some(k => !(k in e.lineas_factor))) throw Error("Líneas regionales incompletas o desconocidas");
+      for (const v of Object.values(e.lineas_factor)) for (const k of ["linea","linpe"]) num(v[k],.000001,100,k);
+    }
+    const ag = e.nolab_agregados || [];
+    if (!Array.isArray(ag) || new Set(ag).size !== ag.length || ag.some(k => !NOLAB.slice(0,-1).includes(k))) throw Error("Componentes agregados inválidos");
+    for (const k of ["bono", "afp"]) if (e[k] !== undefined && (e[k] === null || typeof e[k] !== "object" || Array.isArray(e[k]))) throw Error("Política inválida: " + k);
+    const b = e.bono || {}, a = e.afp || {};
+    num(b.mpc === undefined ? 1 : b.mpc,0,1,"bono.mpc"); num(a.mpc === undefined ? 1 : a.mpc,0,1,"afp.mpc");
+    num((b.monto_anual === undefined ? 0 : b.monto_anual),0,1e7,"bono.monto_anual"); num((b.deciles === undefined ? 0 : b.deciles),0,10,"bono.deciles");
+    if (!Number.isInteger((b.deciles === undefined ? 0 : b.deciles))) throw Error("El número de deciles debe ser entero");
+    num((a.monto === undefined ? 0 : a.monto),0,1e7,"afp.monto"); num((a.cobertura === undefined ? 0 : a.cobertura),0,1,"afp.cobertura");
+  }
+
   class Modelo {
     constructor(D) {
       this.D = D; const P = D.personas, H = D.hogares;
       this.nP = P.ih.length; this.nH = H.w.length;
       this.coef = { 3: D.params.coef_sector.informal, 4: D.params.coef_sector.formal };
-      this.L0 = D.params.L0; this.omega = D.params.omega;
+      this.L0 = Array(6).fill(0);
+      for (let i = 0; i < P.e.length; i++) if (P.e[i] === 3 || P.e[i] === 4) this.L0[P.s[i]-1] += H.w[P.ih[i]];
+      this.omega = D.params.omega;
       this.w0 = H.w; this.ocup0 = P.e.map(e => e === 3 || e === 4);
       this.nolab0 = NOLAB.map(k => H.nolab[k]);
       this.Y0 = new Float64Array(this.nH);
@@ -76,7 +111,34 @@
     }
     simular(esc) {
       const D = this.D, P = D.personas, H = D.hogares, nP = this.nP, nH = this.nH;
-      const w = this.w0.map(v => v * (esc.poblacion_factor || 1));
+      validarEscenario(esc, D);
+      let w = this.w0.map(v => v * esc.poblacion_factor);
+      let demografia = {error_max_rel: 0, iteraciones: 0};
+      if (esc.poblacion_grupos != null) {
+        const G = D.demografia.conteos, claves = D.demografia.claves, K = claves.length;
+        const T = Array(K).fill(0), nh = G.map(row => row.reduce((a,b) => a+b, 0));
+        let poblacion0 = 0;
+        for (let h = 0; h < nH; h++) {
+          poblacion0 += this.w0[h] * H.n[h];
+          for (let k = 0; k < K; k++) T[k] += this.w0[h] * G[h][k];
+        }
+        for (let k = 0; k < K; k++) T[k] *= esc.poblacion_grupos[claves[k]];
+        const total = T.reduce((a,b) => a+b, 0);
+        for (let k = 0; k < K; k++) T[k] *= poblacion0 * esc.poblacion_factor / total;
+        let convergio = false;
+        for (let it = 0; it < 1000; it++) {
+          const cur = Array(K).fill(0);
+          for (let h = 0; h < nH; h++) for (let k = 0; k < K; k++) cur[k] += w[h] * G[h][k];
+          const err = Math.max(...cur.map((v,k) => Math.abs(v/T[k]-1)));
+          if (err < 1e-8) { demografia = {error_max_rel: err, iteraciones: it}; convergio = true; break; }
+          const lr = cur.map((v,k) => Math.log(T[k]/v));
+          for (let h = 0; h < nH; h++) {
+            let v = 0; for (let k = 0; k < K; k++) v += G[h][k] * lr[k];
+            w[h] *= Math.exp(v/nh[h]);
+          }
+        }
+        if (!convergio) throw Error("La calibración demográfica no convergió");
+      }
       const wp = new Float64Array(nP); let pop14 = 0;
       for (let i = 0; i < nP; i++) { wp[i] = w[P.ih[i]]; pop14 += wp[i]; }
       // 2. ocupación
@@ -124,59 +186,94 @@
       // 4. ingresos laborales
       const L_t = contar();
       const rel = L_t.map((l, s) => Math.pow(esc.va_factor[s] / Math.max(l / this.L0[s], 1e-9), esc.passthrough == null ? 1 : esc.passthrough));
-      let f_sector;
-      if (esc.ing_lab_real_factor_sector) f_sector = esc.ing_lab_real_factor_sector.map(v => v * esc.ipc);
-      else if (esc.ing_lab_real_factor == null) f_sector = rel.map(v => v * esc.ipc);
-      else { let norm = 0; for (let s = 0; s < 6; s++) norm += this.omega[s] * rel[s]; f_sector = rel.map(v => v / norm * esc.ing_lab_real_factor * esc.ipc); }
-      const y = new Float64Array(nP);
+      const y = new Float64Array(nP), f_sector = Array(6).fill(1), metasIngreso = {};
       for (let i = 0; i < nP; i++) {
         if (!ocup[i]) continue;
-        const seg = formal[i] ? 4 : 3;
-        let v = (this.ocup0[i] && seg === P.e[i]) ? P.y[i] : (formal[i] ? P.yf[i] : P.yi[i]);
-        const cf = this.coef[seg];
-        v *= Math.exp(cf[sector[i] - 1] - cf[P.sp[i] - 1]);
-        y[i] = v * f_sector[sector[i] - 1];
+        const seg = formal[i] ? 4 : 3, cf = this.coef[seg];
+        const v = this.ocup0[i] && seg === P.e[i] ? P.y[i] : (formal[i] ? P.yf[i] : P.yi[i]);
+        y[i] = v * Math.exp(cf[sector[i]-1] - cf[P.sp[i]-1]);
       }
-      // 5. hogares
+      const ajustar = (mask, mask0, factor, nombre) => {
+        let sy = 0, sw = 0, sy0 = 0, sw0 = 0;
+        for (let i = 0; i < nP; i++) {
+          if (mask(i)) { sy += y[i]*wp[i]; sw += wp[i]; }
+          if (mask0(i)) { const w0 = this.w0[P.ih[i]]; sy0 += P.y[i]*w0; sw0 += w0; }
+        }
+        if (sw === 0) return 1;
+        const objetivo = sy0/sw0 * factor * esc.ipc, previo = sy/sw;
+        if (previo <= 0 && objetivo > 0) throw Error("No hay ingreso positivo para calibrar " + nombre);
+        const f = previo > 0 ? objetivo/previo : 1;
+        let nuevo = 0;
+        for (let i = 0; i < nP; i++) if (mask(i)) { y[i] *= f; nuevo += y[i]*wp[i]; }
+        metasIngreso[nombre] = {meta: objetivo, resultado: nuevo/sw};
+        return f;
+      };
+      const gsa = esc.ing_lab_real_factor_sector_area, gs = esc.ing_lab_real_factor_sector;
+      if (gsa != null) {
+        for (const u of [0,1]) for (let s = 1; s <= 6; s++) {
+          const f = ajustar(i => ocup[i] && sector[i] === s && P.urb[i] === u,
+            i => this.ocup0[i] && P.s[i] === s && P.urb[i] === u, gsa[String(u)][s-1], `sector${s}_area${u}`);
+          if (u === 1) f_sector[s-1] = f;
+        }
+      } else if (gs != null) {
+        for (let s = 1; s <= 6; s++) f_sector[s-1] = ajustar(i => ocup[i] && sector[i] === s,
+          i => this.ocup0[i] && P.s[i] === s, gs[s-1], `sector${s}`);
+      } else if (esc.ing_lab_real_factor == null) {
+        for (let s = 0; s < 6; s++) f_sector[s] = rel[s] * esc.ipc;
+        for (let i = 0; i < nP; i++) if (ocup[i]) y[i] *= f_sector[sector[i]-1];
+      } else {
+        for (let i = 0; i < nP; i++) if (ocup[i]) y[i] *= rel[sector[i]-1];
+        const f = ajustar(i => ocup[i], i => this.ocup0[i], esc.ing_lab_real_factor, "agregado");
+        for (let s = 0; s < 6; s++) f_sector[s] = rel[s]*f;
+      }
+      // 5. Ingreso corriente, consumo y retiro de activos por separado.
       const lab_t = new Float64Array(nH);
       for (let i = 0; i < nP; i++) lab_t[P.ih[i]] += y[i];
-      const fac = NOLAB.map(k => esc[FACT[k]] == null ? 1 : esc[FACT[k]]);
-      const extra = new Float64Array(nH);
-      const b = esc.bono || {};
+      const fac = NOLAB.map(k => esc[FACT[k]] == null ? 1 : esc[FACT[k]]), metasNolab = {};
+      for (const k of esc.nolab_agregados || []) {
+        const j = NOLAB.indexOf(k); let base = 0, previo = 0;
+        for (let h = 0; h < nH; h++) { base += this.w0[h]*this.nolab0[j][h]; previo += w[h]*this.nolab0[j][h]; }
+        const objetivo = base*fac[j];
+        if (previo === 0 && objetivo !== 0) throw Error("Sin receptores para la meta de " + k);
+        fac[j] = previo !== 0 ? objetivo/previo : 1;
+        metasNolab[k] = {meta: objetivo, resultado: previo*fac[j]};
+      }
+      const bono = new Float64Array(nH), retiro = new Float64Array(nH);
+      const b = esc.bono || {}, a = esc.afp || {};
+      let hogaresBono = 0, personasAFP = 0;
       if (b.monto_anual > 0 && b.deciles > 0) {
         if (!this.decilesBase) {
-          const wpers = this.w0.map((v, h) => v * H.n[h]);
-          const cortes = cuantiles(H.g, wpers, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);
-          this.decilesBase = H.g.map(g => { let d = 0; while (d < 9 && g >= cortes[d]) d++; return d + 1; });
+          const cortes = cuantiles(H.g, this.w0.map((v,h) => v*H.n[h]), [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]);
+          this.decilesBase = H.g.map(g => { let d = 0; while (d < 9 && g >= cortes[d]) d++; return d+1; });
         }
-        for (let h = 0; h < nH; h++) if (this.decilesBase[h] <= b.deciles) extra[h] += b.monto_anual / 12 * (b.mpc == null ? 1 : b.mpc);
+        for (let h = 0; h < nH; h++) if (this.decilesBase[h] <= b.deciles) { bono[h] = b.monto_anual/12; hogaresBono += w[h]; }
       }
-      const a = esc.afp || {};
-      if (a.cobertura > 0 && a.monto > 0) {
-        for (let i = 0; i < nP; i++) if (P.afp[i] === 1 && P.u[i] < a.cobertura) extra[P.ih[i]] += a.monto / 12 * (a.mpc == null ? 1 : a.mpc);
+      if (a.cobertura > 0 && a.monto > 0) for (let i = 0; i < nP; i++) if (P.afp[i] === 1 && P.u[i] < a.cobertura) {
+        retiro[P.ih[i]] += a.monto/12; personasAFP += wp[i];
       }
-      const el = esc.elasticidad_gasto == null ? 1 : esc.elasticidad_gasto;
-      const gasto = new Float64Array(nH), ing = new Float64Array(nH), Y_t = new Float64Array(nH), wpers = new Float64Array(nH);
+      const el = esc.elasticidad_gasto;
+      const gasto = new Float64Array(nH), ing = new Float64Array(nH), wpers = new Float64Array(nH);
       const linea = new Float64Array(nH), linpe = new Float64Array(nH);
-      const lf = esc.linea_factor_nacional == null ? 1 : esc.linea_factor_nacional, lfe = esc.linpe_factor_nacional == null ? 1 : esc.linpe_factor_nacional;
-      let Ytot = 0;
+      let Ytot = 0, costoBono = 0, retiroAFP = 0, consumoExtra = 0, poblacionMeta = 0;
       for (let h = 0; h < nH; h++) {
-        let nol = 0; for (let k = 0; k < 9; k++) nol += this.nolab0[k][h] * fac[k];
-        Y_t[h] = lab_t[h] + nol + extra[h];
-        const piso = 0.1 * H.g[h] * H.n[h];
-        const ratio = Math.max(Y_t[h], piso) / Math.max(this.Y0[h], piso);
-        gasto[h] = H.g[h] * Math.pow(ratio, el);
-        ing[h] = Y_t[h] / H.n[h];
-        wpers[h] = w[h] * H.n[h];
-        linea[h] = H.lin[h] * lf; linpe[h] = H.linpe[h] * lfe;
-        Ytot += Y_t[h] * w[h];
+        let nol = 0; for (let k = 0; k < NOLAB.length; k++) nol += this.nolab0[k][h]*fac[k];
+        const regular = lab_t[h] + nol, Y = regular + bono[h], piso = 0.1*H.g[h]*H.n[h];
+        const ratio = Math.max(regular/esc.ipc, piso)/Math.max(this.Y0[h], piso);
+        const extra = bono[h]*(b.mpc === undefined ? 1 : b.mpc) + retiro[h]*(a.mpc === undefined ? 1 : a.mpc);
+        gasto[h] = H.g[h]*esc.ipc*Math.pow(ratio, el) + extra/H.n[h];
+        ing[h] = Y/H.n[h]; wpers[h] = w[h]*H.n[h];
+        const lf = esc.lineas_factor && esc.lineas_factor[H.dom[h]+"_"+H.urb[h]];
+        linea[h] = H.lin[h]*(lf ? lf.linea : esc.linea_factor_nacional);
+        linpe[h] = H.linpe[h]*(lf ? lf.linpe : esc.linpe_factor_nacional);
+        Ytot += Y*w[h]; costoBono += bono[h]*w[h]*12; retiroAFP += retiro[h]*w[h]*12; consumoExtra += extra*w[h]*12;
+        poblacionMeta += this.w0[h]*H.n[h]*esc.poblacion_factor;
       }
       // 6. indicadores
       const pobre = i => gasto[i] < linea[i], ext = i => gasto[i] < linpe[i];
       const brecha = i => pobre(i) ? 1 - gasto[i] / linea[i] : 0;
       const todos = () => true;
       let Wt = 0, nPob = 0, nExt = 0; for (let h = 0; h < nH; h++) { Wt += wpers[h]; if (pobre(h)) nPob += wpers[h]; if (ext(h)) nExt += wpers[h]; }
-      const dec = mediasDecil(Array.from(gasto), wpers), dec0 = mediasDecil(H.g, wpers);
+      const dec = mediasDecil(Array.from(gasto), wpers), dec0 = mediasDecil(H.g, this.w0.map((v,h) => v*H.n[h]));
       const decReal = mediasDecil(Array.from(gasto, v => v / esc.ipc), wpers);   // GIC en términos reales
       const res = {
         pobreza: nPob / Wt, pobreza_extrema: nExt / Wt,
@@ -189,6 +286,10 @@
                     rural: { pobreza: wmean(i => H.urb[i] === 0, wpers, nH, i => pobre(i) ? 1 : 0), pobreza_extrema: wmean(i => H.urb[i] === 0, wpers, nH, i => ext(i) ? 1 : 0) } },
         por_dominio: {}, por_dpto: {},
         ingreso_hogar_total: Ytot,
+        diagnostico: {demografia, ingresos: metasIngreso, no_laborales: metasNolab, poblacion_meta: poblacionMeta,
+          ocupacion_meta: esc.tasa_ocupacion, desempleo_meta: esc.tasa_desempleo, informalidad_meta: esc.informalidad, sector_shares_meta: sh},
+        politicas: {costo_bono_anual: costoBono, hogares_bono: hogaresBono, retiro_afp_anual: retiroAFP,
+          personas_afp: personasAFP, consumo_adicional_anual: consumoExtra},
       };
       for (const d of [...new Set(H.dom)].sort((a, b) => a - b)) res.por_dominio[d] = wmean(i => H.dom[i] === d, wpers, nH, i => pobre(i) ? 1 : 0);
       for (const d of [...new Set(H.dpto)].sort((a, b) => a - b)) res.por_dpto[d] = wmean(i => H.dpto[i] === d, wpers, nH, i => pobre(i) ? 1 : 0);
@@ -199,5 +300,5 @@
       return res;
     }
   }
-  global.MicroSim = { Modelo, gini, cuantiles, mediasDecil, NOLAB };
+  global.MicroSim = { validarEscenario, Modelo, gini, cuantiles, mediasDecil, NOLAB };
 })(typeof window !== "undefined" ? window : globalThis);
