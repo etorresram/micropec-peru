@@ -111,9 +111,12 @@ for ax, (k, titulo) in zip(axes, [("pobreza", "Pobreza total"), ("extrema", "Pob
     alto, bajo = (sim[-1], obs[-1]) if sim[-1] >= obs[-1] else (obs[-1], sim[-1])
     ax.annotate(f"{alto*100:.1f}", (anios[-1], alto * 100), textcoords="offset points", xytext=(5, 3), color="#52514e", fontsize=8)
     ax.annotate(f"{bajo*100:.1f}", (anios[-1], bajo * 100), textcoords="offset points", xytext=(5, -9), color="#52514e", fontsize=8)
-axes[0].legend(frameon=False, loc="upper left", fontsize=8)
+# Leyenda compartida fuera de los ejes: no oculta ninguna trayectoria.
+handles, labels = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, frameon=False, loc="upper center",
+           bbox_to_anchor=(0.5, 0.95), ncol=2, fontsize=9)
 fig.suptitle("Backcasting 2020-2024: pobreza simulada con agregados contemporáneos observados vs. cifra oficial", x=0.01, ha="left", fontsize=10)
-fig.tight_layout()
+fig.tight_layout(rect=(0, 0, 1, 0.88))
 fig.savefig(C.OUT / "figuras" / "backcast.png", dpi=200)
 fig.savefig(C.OUT / "figuras" / "backcast.pdf")
 
