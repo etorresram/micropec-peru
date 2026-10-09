@@ -1,0 +1,8 @@
+{
+ "acierto_validacion": 0.984120548685722,
+ "informalidad_validacion_obs": 0.7382768792974458,
+ "informalidad_validacion_pred": 0.732091091947205,
+ "informalidad_2024_imputada": 0.7244078724811303,
+ "n_2023": 59447,
+ "n_2024": 58579
+}

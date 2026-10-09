@@ -1,0 +1,458 @@
+<meta charset="utf-8">
+<title>MicroPEC Perú</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: panel de controles a la izquierda (fijo en escritorio), resultados a la derecha; una columna en móvil. */
+:root {
+  --bg: #f7f6f3; --surface: #ffffff; --surface-2: #efede8; --fg: #141413; --fg-2: #52514e; --muted: #8a8882;
+  --line: #dddbd4; --accent: #1c5cab; --accent-soft: #e4eefb;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+  --good: #0ca30c; --critical: #d03b3b;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161614; --surface: #1f1f1d; --surface-2: #2a2a27; --fg: #f3f2ee; --fg-2: #c3c2b7; --muted: #8e8d86;
+  --line: #3a3936; --accent: #5598e7; --accent-soft: #1e2d44;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #161614; --surface: #1f1f1d; --surface-2: #2a2a27; --fg: #f3f2ee; --fg-2: #c3c2b7; --muted: #8e8d86;
+  --line: #3a3936; --accent: #5598e7; --accent-soft: #1e2d44;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 48px; padding-inline: 16px; }
+header.top { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 18px; }
+header.top h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+header.top p { margin: 0; color: var(--fg-2); max-width: 70ch; }
+.estado { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: auto; }
+.grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+aside { position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 8px); overflow-y: auto; padding-right: 4px; }
+@media (max-width: 860px) { aside { position: static; max-height: none; } }
+details { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 8px; }
+details > summary { cursor: pointer; padding: 9px 12px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details > summary::after { content: "+"; color: var(--muted); font-weight: 400; }
+details[open] > summary::after { content: "–"; }
+details > div { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
+.ctl { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 6px 10px; align-items: center; margin-top: 8px; }
+.ctl label { font-size: 13px; color: var(--fg-2); }
+.ctl input[type=range] { grid-column: 1 / 2; width: 100%; accent-color: var(--accent); margin: 0; }
+.ctl input[type=number] { width: 72px; font: 12px var(--mono); padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--fg); text-align: right; }
+.ctl .val { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.ctl label { grid-column: 1; }
+.fila { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+button { font: 500 13px var(--sans); padding: 7px 12px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button.primario { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+select { font: 13px var(--sans); padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--fg); }
+.nota { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; min-width: 0; }
+.tile .lbl { font-size: 12px; color: var(--fg-2); }
+.tile .num { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin-top: 2px; }
+.tile.hero-main { grid-column: span 2; } .tile.hero-main .num { font-size: 44px; white-space: nowrap; }
+@media (max-width: 480px) { .tile.hero-main { grid-column: span 1; } .tile.hero-main .num { font-size: 36px; } }
+.tile .delta { font-size: 12px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.delta .up { color: var(--critical); } .delta .down { color: var(--good); }
+.bloque { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; margin-bottom: 16px; min-width: 0; }
+.bloque h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.bloque .sub { color: var(--fg-2); font-size: 12px; margin: 0 0 10px; }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+svg text { font-family: var(--sans); fill: var(--fg-2); font-size: 11px; }
+svg .eje { stroke: var(--line); stroke-width: 1; }
+svg .grilla { stroke: var(--line); stroke-width: 1; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--fg-2); margin: 4px 0 6px; }
+.leyenda span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; color: var(--fg-2); font-size: 12px; }
+.tabla-scroll { overflow-x: auto; }
+.tooltip { position: fixed; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 4px; display: none; z-index: 10; font-variant-numeric: tabular-nums; }
+textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); color: var(--fg); padding: 8px; }
+.cargando { padding: 40px 0; color: var(--fg-2); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) { .num { transition: color .2s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>MicroPEC Perú</h1>
+      <p>Modelo de microsimulación macro-micro de pobreza y distribución del ingreso. Año base ENAHO 2019; mueva los supuestos macro, laborales y de política y vea el efecto sobre los hogares en segundos.</p>
+    </div>
+    <div class="estado" id="estado">Cargando microdatos…</div>
+  </header>
+
+  <div class="grid">
+    <aside>
+      <div class="fila">
+        <select id="preset" aria-label="Escenario predefinido">
+          <option value="base">Año base 2019 (sin cambios)</option>
+          <option value="2020">2020 observado (pandemia)</option>
+          <option value="2021">2021 observado</option>
+          <option value="2022">2022 observado</option>
+          <option value="2023">2023 observado</option>
+          <option value="2024">2024 observado</option>
+          <option value="shock">Choque: recesión + inflación</option>
+          <option value="afp">Política: retiro extraordinario AFP</option>
+        </select>
+        <button id="cargar">Cargar</button>
+      </div>
+      <details open><summary>Economía</summary><div id="g-macro"></div></details>
+      <details><summary>Mercado laboral</summary><div id="g-laboral"></div></details>
+      <details><summary>Precios y líneas de pobreza</summary><div id="g-precios"></div></details>
+      <details><summary>Ingresos no laborales</summary><div id="g-nolab"></div></details>
+      <details><summary>Políticas: bonos y retiros AFP</summary><div id="g-politica"></div></details>
+      <details><summary>Supuestos del modelo</summary><div id="g-supuestos"></div></details>
+      <div class="fila">
+        <button class="primario" id="simular" disabled>Simular</button>
+        <button id="fijar" disabled>Fijar como referencia</button>
+        <button id="reset">Volver a 2019</button>
+      </div>
+      <p class="nota">Las variaciones son acumuladas respecto de 2019. Los escenarios “observado” cargan los insumos reales de cada año (BCRP, INEI) y permiten comparar con la cifra oficial.</p>
+    </aside>
+
+    <main id="res">
+      <div class="cargando" id="cargando">Descargando la base del modelo (12 MB, unos segundos)…</div>
+      <div id="contenido" hidden>
+        <div class="hero" id="hero"></div>
+        <div class="dos">
+          <div class="bloque">
+            <h2>Curva de incidencia del crecimiento</h2>
+            <p class="sub">Variación real del gasto per cápita medio por decil, escenario vs. 2019</p>
+            <div id="gic"></div>
+          </div>
+          <div class="bloque">
+            <h2>Pobreza por dominio geográfico</h2>
+            <p class="sub">Incidencia (% de la población), 2019 vs. escenario</p>
+            <div id="dominios"></div>
+          </div>
+        </div>
+        <div class="bloque">
+          <h2>Resumen de indicadores</h2>
+          <p class="sub" id="sub-tabla">Base 2019, escenario actual y referencia</p>
+          <div class="tabla-scroll"><table id="tabla"></table></div>
+          <div class="fila"><button id="copiar">Copiar tabla como CSV</button><button id="ver-csv">Mostrar CSV</button></div>
+          <textarea id="csv" hidden aria-label="CSV de resultados"></textarea>
+        </div>
+        <div class="bloque">
+          <h2>Pobreza por departamento</h2>
+          <p class="sub">Incidencia (% de la población) en el escenario; ordenado de mayor a menor</p>
+          <div id="dptos"></div>
+        </div>
+        <p class="nota">Fuente: ENAHO 2019 (INEI), módulos 200, 300, 500 y Sumaria; PBI sectorial, IPC y remesas del BCRP. El motor en JavaScript reproduce el de Python del repositorio (prueba de equivalencia incluida). Resultados ilustrativos de un modelo de muestra.</p>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="tooltip" id="tt"></div>
+
+<script src="motor.js"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const SECT = ["Agropecuario y pesca", "Minería e hidrocarburos", "Manufactura", "Construcción", "Comercio", "Servicios"];
+  const DOM = { 1: "Costa norte", 2: "Costa centro", 3: "Costa sur", 4: "Sierra norte", 5: "Sierra centro", 6: "Sierra sur", 7: "Selva", 8: "Lima Metropolitana" };
+  const DPTO = { 1: "Amazonas", 2: "Áncash", 3: "Apurímac", 4: "Arequipa", 5: "Ayacucho", 6: "Cajamarca", 7: "Callao", 8: "Cusco", 9: "Huancavelica", 10: "Huánuco", 11: "Ica", 12: "Junín", 13: "La Libertad", 14: "Lambayeque", 15: "Lima", 16: "Loreto", 17: "Madre de Dios", 18: "Moquegua", 19: "Pasco", 20: "Piura", 21: "Puno", 22: "San Martín", 23: "Tacna", 24: "Tumbes", 25: "Ucayali" };
+  let D = null, modelo = null, base = null, ref = null, actual = null;
+
+  // ---- definición de controles (id, etiqueta, min, max, paso, valor neutro) -------------------
+  const CTL = {
+    macro: [
+      ...SECT.map((s, i) => [`va${i}`, `PBI ${s.toLowerCase()} (var. real %)`, -30, 40, 0.5, 0]),
+      ["glab", "Ingreso laboral medio real (var. %)", -30, 30, 0.5, 0],
+      ["pass", "Traslado del PBI sectorial a ingresos (0–1)", 0, 1, 0.05, 0.25],
+      ["pob", "Crecimiento de la población (%)", -2, 10, 0.1, 0],
+    ],
+    laboral: [
+      ["ocup", "Tasa de ocupación, 14+ (%)", 40, 85, 0.1, 0],
+      ["des", "Tasa de desempleo (%)", 0, 20, 0.1, 0],
+      ["inf", "Informalidad (% del empleo)", 50, 90, 0.1, 0],
+      ...SECT.map((s, i) => [`sh${i}`, `Empleo en ${s.toLowerCase()} (% del total)`, 0, 60, 0.1, 0]),
+    ],
+    precios: [
+      ["ipc", "Inflación acumulada, IPC (%)", -5, 60, 0.5, 0],
+      ["linea", "Inflación de la línea de pobreza (%)", -5, 60, 0.5, 0],
+      ["linpe", "Inflación de la línea de pobreza extrema (%)", -5, 60, 0.5, 0],
+    ],
+    nolab: [
+      ["juntos", "Programa Juntos (var. nominal %)", -50, 100, 1, 0],
+      ["p65", "Pensión 65 (var. nominal %)", -50, 100, 1, 0],
+      ["pubotros", "Otras transferencias públicas (var. nominal %)", -50, 100, 1, 0],
+      ["priv", "Pensiones y transferencias privadas (var. nominal %)", -30, 60, 1, 0],
+      ["rem", "Remesas del exterior (var. nominal %)", -40, 100, 1, 0],
+      ["rentas", "Rentas de la propiedad (var. nominal %)", -30, 60, 1, 0],
+    ],
+    politica: [
+      ["bmonto", "Bono: monto anual por hogar (S/)", 0, 3000, 50, 0],
+      ["bdec", "Bono: deciles de gasto cubiertos (1 = más pobre)", 0, 10, 1, 0],
+      ["bmpc", "Bono: proporción que se consume", 0, 1, 0.05, 1],
+      ["acob", "Retiro AFP: afiliados que retiran (%)", 0, 100, 1, 0],
+      ["amonto", "Retiro AFP: monto medio retirado (S/)", 0, 25000, 500, 0],
+      ["ampc", "Retiro AFP: proporción que se consume", 0, 1, 0.05, 0.7],
+    ],
+    supuestos: [
+      ["elas", "Elasticidad gasto–ingreso", 0.3, 1.5, 0.05, 0.8],
+    ],
+  };
+  function construirControles() {
+    for (const [g, lista] of Object.entries(CTL)) {
+      const cont = $("g-" + g);
+      for (const [id, lbl, min, max, step, val] of lista) {
+        const div = document.createElement("div"); div.className = "ctl";
+        div.innerHTML = `<label for="r-${id}">${lbl}</label><input class="val" id="n-${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${lbl}"><input id="r-${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;
+        cont.appendChild(div);
+        const r = div.querySelector("input[type=range]"), n = div.querySelector("input[type=number]");
+        r.addEventListener("input", () => { n.value = r.value; });
+        n.addEventListener("input", () => { r.value = n.value; });
+      }
+    }
+  }
+  const get = id => parseFloat($("n-" + id).value);
+  const set = (id, v) => { const x = Math.round(v * 1000) / 1000; $("n-" + id).value = x; $("r-" + id).value = x; };
+
+  // ---- escenario <-> controles --------------------------------------------------------------
+  function escenarioDesdeControles() {
+    const lb = D.params.laboral_base;
+    const sh = SECT.map((_, i) => get("sh" + i)); const ssum = sh.reduce((a, b) => a + b, 0);
+    const ipc = 1 + get("ipc") / 100;
+    return {
+      ...D.escenario_base,
+      poblacion_factor: 1 + get("pob") / 100,
+      tasa_ocupacion: get("ocup") / 100, tasa_desempleo: get("des") / 100, informalidad: get("inf") / 100,
+      sector_shares: sh.map(v => v / ssum),
+      va_factor: SECT.map((_, i) => 1 + get("va" + i) / 100),
+      ing_lab_real_factor: 1 + get("glab") / 100, passthrough: get("pass"), ipc,
+      linea_factor_nacional: 1 + get("linea") / 100, linpe_factor_nacional: 1 + get("linpe") / 100,
+      tr_juntos_factor: 1 + get("juntos") / 100, tr_p65_factor: 1 + get("p65") / 100, tr_pub_otros_factor: 1 + get("pubotros") / 100,
+      tr_privadas_factor: 1 + get("priv") / 100, remesas_factor: 1 + get("rem") / 100, rentas_factor: 1 + get("rentas") / 100,
+      alq_factor: ipc, otros_factor: ipc,
+      elasticidad_gasto: get("elas"),
+      bono: { monto_anual: get("bmonto"), deciles: get("bdec"), mpc: get("bmpc") },
+      afp: { cobertura: get("acob") / 100, monto: get("amonto"), mpc: get("ampc") },
+      ing_lab_real_factor_sector: null,
+    };
+  }
+  function controlesDesdeEscenario(e) {
+    SECT.forEach((_, i) => { set("va" + i, (e.va_factor[i] - 1) * 100); set("sh" + i, e.sector_shares[i] * 100); });
+    set("glab", ((e.ing_lab_real_factor == null ? 1 : e.ing_lab_real_factor) - 1) * 100);
+    set("pass", e.passthrough == null ? 0.25 : e.passthrough);
+    set("pob", (e.poblacion_factor - 1) * 100);
+    set("ocup", e.tasa_ocupacion * 100); set("des", e.tasa_desempleo * 100); set("inf", e.informalidad * 100);
+    set("ipc", (e.ipc - 1) * 100); set("linea", (e.linea_factor_nacional - 1) * 100); set("linpe", (e.linpe_factor_nacional - 1) * 100);
+    set("juntos", (e.tr_juntos_factor - 1) * 100); set("p65", (e.tr_p65_factor - 1) * 100); set("pubotros", (e.tr_pub_otros_factor - 1) * 100);
+    set("priv", (e.tr_privadas_factor - 1) * 100); set("rem", (e.remesas_factor - 1) * 100); set("rentas", (e.rentas_factor - 1) * 100);
+    set("elas", e.elasticidad_gasto == null ? 0.8 : e.elasticidad_gasto);
+    const b = e.bono || {}; set("bmonto", b.monto_anual || 0); set("bdec", b.deciles || 0); set("bmpc", b.mpc == null ? 1 : b.mpc);
+    const a = e.afp || {}; set("acob", (a.cobertura || 0) * 100); set("amonto", a.monto || 0); set("ampc", a.mpc == null ? 0.7 : a.mpc);
+  }
+  function preset(nombre) {
+    const b = { ...D.escenario_base, passthrough: 0.25, elasticidad_gasto: 0.8 };
+    if (nombre === "base") return b;
+    if (D.presets[nombre]) return { ...b, ...D.presets[nombre] };
+    if (nombre === "shock") return { ...b, va_factor: [0.98, 0.97, 0.94, 0.9, 0.95, 0.96], ing_lab_real_factor: 0.93, ipc: 1.08,
+      linea_factor_nacional: 1.10, linpe_factor_nacional: 1.12, tasa_ocupacion: b.tasa_ocupacion - 0.03, tasa_desempleo: b.tasa_desempleo + 0.03,
+      informalidad: b.informalidad + 0.02, tr_privadas_factor: 1.08, alq_factor: 1.08, otros_factor: 1.08, remesas_factor: 1.05, rentas_factor: 1.0 };
+    if (nombre === "afp") return { ...b, afp: { cobertura: 0.6, monto: 8000, mpc: 0.7 } };
+    return b;
+  }
+
+  // ---- formato ---------------------------------------------------------------------------
+  const pct = (v, d = 1) => (v * 100).toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d }) + " %";
+  const num = (v, d = 0) => v.toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pp = v => (v > 0 ? "+" : "") + (v * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " pp";
+  const mill = v => num(v / 1e6, 2) + " M";
+
+  // ---- resultados ------------------------------------------------------------------------
+  function tile(lbl, val, delta, main) {
+    return `<div class="tile${main ? " hero-main" : ""}"><div class="lbl">${lbl}</div><div class="num">${val}</div><div class="delta">${delta}</div></div>`;
+  }
+  function deltaTxt(a, b, fmt, peorSiSube = true) {
+    const d = a - b; const cls = d > 0 ? (peorSiSube ? "up" : "down") : (d < 0 ? (peorSiSube ? "down" : "up") : "");
+    return `<span class="${cls}">${fmt(d)}</span> vs. 2019`;
+  }
+  function render(r, esc) {
+    actual = r;
+    const sel = $("preset").value, ofi = D.oficial[sel];
+    $("hero").innerHTML =
+      tile("Pobreza monetaria", pct(r.pobreza), deltaTxt(r.pobreza, base.pobreza, pp) + (ofi ? ` · oficial INEI ${pct(ofi.pobreza)}` : ""), true) +
+      tile("Pobreza extrema", pct(r.pobreza_extrema), deltaTxt(r.pobreza_extrema, base.pobreza_extrema, pp) + (ofi ? ` · oficial ${pct(ofi.pobreza_extrema)}` : "")) +
+      tile("Personas en pobreza", mill(r.n_pobres), deltaTxt(r.n_pobres, base.n_pobres, v => (v > 0 ? "+" : "") + num(v / 1e6, 2) + " M")) +
+      tile("Coeficiente de Gini (gasto)", num(r.gini_gasto, 3), deltaTxt(r.gini_gasto, base.gini_gasto, v => (v > 0 ? "+" : "") + num(v, 3))) +
+      tile("Brecha de pobreza", pct(r.brecha), deltaTxt(r.brecha, base.brecha, pp)) +
+      tile("Ingreso laboral medio real", "S/ " + num(r.laboral.ing_lab_medio_real), deltaTxt(r.laboral.ing_lab_medio_real, base.laboral.ing_lab_medio_real, v => (v > 0 ? "+" : "") + num(v) + " S/ de 2019", false));
+    graficoGIC(r); graficoDominios(r); tabla(r); graficoDptos(r);
+  }
+
+  // ---- gráficos SVG ----------------------------------------------------------------------
+  const tt = $("tt");
+  function hover(el, txt) {
+    el.addEventListener("mousemove", ev => { tt.style.display = "block"; tt.textContent = txt; tt.style.left = (ev.clientX + 12) + "px"; tt.style.top = (ev.clientY + 12) + "px"; });
+    el.addEventListener("mouseleave", () => { tt.style.display = "none"; });
+  }
+  function graficoGIC(r) {
+    const W = 520, H = 230, ml = 44, mr = 10, mt = 12, mb = 34;
+    const series = [{ k: "Escenario", v: r.gic, c: "var(--s2)" }];
+    if (ref && ref !== r) series.unshift({ k: "Referencia", v: ref.gic, c: "var(--s1)" });
+    const all = series.flatMap(s => s.v).concat([0]);
+    const lo = Math.min(...all) * 100, hi = Math.max(...all) * 100;
+    const pad = Math.max((hi - lo) * 0.15, 1), y0 = Math.floor((lo - pad) / 5) * 5, y1 = Math.ceil((hi + pad) / 5) * 5;
+    const sy = v => mt + (H - mt - mb) * (1 - (v - y0) / (y1 - y0));
+    const bw = (W - ml - mr) / 10, n = series.length, barw = Math.min(22, (bw - 8) / n);
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Curva de incidencia del crecimiento por decil">`;
+    for (let g = y0; g <= y1; g += 5) s += `<line class="grilla" x1="${ml}" x2="${W - mr}" y1="${sy(g)}" y2="${sy(g)}"/><text x="${ml - 6}" y="${sy(g) + 4}" text-anchor="end">${g}%</text>`;
+    s += `<line class="eje" x1="${ml}" x2="${W - mr}" y1="${sy(0)}" y2="${sy(0)}" style="stroke:var(--fg-2)"/>`;
+    const barras = [];
+    for (let d = 0; d < 10; d++) {
+      series.forEach((se, j) => {
+        const v = se.v[d] * 100, x = ml + bw * d + (bw - barw * n - 2 * (n - 1)) / 2 + j * (barw + 2);
+        const yA = sy(Math.max(v, 0)), yB = sy(Math.min(v, 0));
+        barras.push({ x, y: yA, h: Math.max(yB - yA, 0.5), c: se.c, txt: `${se.k} · decil ${d + 1}: ${v.toFixed(1)} %` });
+      });
+      s += `<text x="${ml + bw * d + bw / 2}" y="${H - mb + 16}" text-anchor="middle">D${d + 1}</text>`;
+    }
+    s += `<text x="${(ml + W - mr) / 2}" y="${H - 4}" text-anchor="middle">Decil de gasto per cápita (2019)</text>`;
+    barras.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${barw}" height="${b.h}" rx="3" fill="${b.c}"/>`; });
+    s += "</svg>";
+    const cont = $("gic");
+    cont.innerHTML = `<div class="leyenda">${series.map(se => `<span style="--c:${se.c}">${se.k}</span>`).join("")}</div>` + s;
+    cont.querySelectorAll("rect").forEach(rc => hover(rc, barras[+rc.dataset.i].txt));
+  }
+  function graficoDominios(r) {
+    const W = 520, H = 230, ml = 118, mr = 44, mt = 6, mb = 24;
+    const keys = Object.keys(DOM), rowh = (H - mt - mb) / keys.length, barw = Math.min(9, rowh / 2 - 2);
+    const maxv = Math.max(...keys.map(k => Math.max(base.por_dominio[k], r.por_dominio[k]))) * 100;
+    const x1 = Math.ceil(maxv / 10) * 10, sx = v => ml + (W - ml - mr) * v / x1;
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Pobreza por dominio">`;
+    for (let g = 0; g <= x1; g += 10) s += `<line class="grilla" y1="${mt}" y2="${H - mb}" x1="${sx(g)}" x2="${sx(g)}"/><text x="${sx(g)}" y="${H - mb + 14}" text-anchor="middle">${g}%</text>`;
+    const barras = [];
+    keys.forEach((k, i) => {
+      const yc = mt + rowh * i + rowh / 2;
+      s += `<text x="${ml - 8}" y="${yc + 4}" text-anchor="end">${DOM[k]}</text>`;
+      [[base.por_dominio[k], "var(--s1)", "2019"], [r.por_dominio[k], "var(--s2)", "Escenario"]].forEach(([v, c, lbl], j) => {
+        const y = yc - barw - 1 + j * (barw + 2);
+        barras.push({ x: ml, y, w: Math.max(sx(v * 100) - ml, 0.5), h: barw, c, txt: `${DOM[k]} · ${lbl}: ${(v * 100).toFixed(1)} %` });
+      });
+      s += `<text x="${sx(Math.max(r.por_dominio[k], base.por_dominio[k]) * 100) + 4}" y="${yc + barw + 2}">${(r.por_dominio[k] * 100).toFixed(1)}</text>`;
+    });
+    barras.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="2" fill="${b.c}"/>`; });
+    s += "</svg>";
+    const cont = $("dominios");
+    cont.innerHTML = `<div class="leyenda"><span style="--c:var(--s1)">2019</span><span style="--c:var(--s2)">Escenario</span></div>` + s;
+    cont.querySelectorAll("rect").forEach(rc => hover(rc, barras[+rc.dataset.i].txt));
+  }
+  function graficoDptos(r) {
+    const keys = Object.keys(r.por_dpto).sort((a, b) => r.por_dpto[b] - r.por_dpto[a]);
+    const W = 1000, rowh = 18, ml = 110, mr = 50, mt = 4, mb = 22, H = mt + mb + rowh * keys.length;
+    const x1 = Math.ceil(Math.max(...keys.map(k => Math.max(r.por_dpto[k], base.por_dpto[k]))) * 100 / 10) * 10, sx = v => ml + (W - ml - mr) * v / x1;
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:100%" role="img" aria-label="Pobreza por departamento">`;
+    for (let g = 0; g <= x1; g += 10) s += `<line class="grilla" y1="${mt}" y2="${H - mb}" x1="${sx(g)}" x2="${sx(g)}"/><text x="${sx(g)}" y="${H - mb + 14}" text-anchor="middle">${g}%</text>`;
+    const items = [];
+    keys.forEach((k, i) => {
+      const y = mt + rowh * i + 3, v = r.por_dpto[k], b = base.por_dpto[k];
+      s += `<text x="${ml - 8}" y="${y + 10}" text-anchor="end">${DPTO[k] || k}</text>`;
+      items.push({ x: ml, y, w: Math.max(sx(v * 100) - ml, 0.5), txt: `${DPTO[k]}: ${(v * 100).toFixed(1)} % (2019: ${(b * 100).toFixed(1)} %)` });
+      s += `<text x="${sx(Math.max(v, b) * 100) + 8}" y="${y + 10}">${(v * 100).toFixed(1)}</text>`;
+    });
+    items.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${b.w}" height="12" rx="2" fill="var(--s2)"/>`; });
+    keys.forEach((k, i) => { const y = mt + rowh * i + 3; s += `<circle cx="${sx(base.por_dpto[k] * 100)}" cy="${y + 6}" r="3.5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>`; });
+    s += "</svg>";
+    const cont = $("dptos");
+    cont.innerHTML = `<div class="leyenda"><span style="--c:var(--s2)">Escenario (barra)</span><span style="--c:var(--s1)">2019 (punto)</span></div>` + s;
+    cont.querySelectorAll("rect").forEach(rc => hover(rc, items[+rc.dataset.i].txt));
+  }
+
+  // ---- tabla y CSV -----------------------------------------------------------------------
+  function filas(r) {
+    return [
+      ["Pobreza monetaria (%)", r.pobreza * 100, 1], ["Pobreza extrema (%)", r.pobreza_extrema * 100, 1],
+      ["Pobreza urbana (%)", r.por_area.urbano.pobreza * 100, 1], ["Pobreza rural (%)", r.por_area.rural.pobreza * 100, 1],
+      ["Brecha de pobreza (%)", r.brecha * 100, 1], ["Severidad (%)", r.severidad * 100, 2],
+      ["Personas en pobreza (millones)", r.n_pobres / 1e6, 2], ["Gini del gasto per cápita", r.gini_gasto, 3], ["Gini del ingreso per cápita", r.gini_ingreso, 3],
+      ["Gasto per cápita medio (S/ corrientes)", r.gasto_pc_medio, 0], ["Tasa de ocupación (%)", r.laboral.tasa_ocupacion * 100, 1],
+      ["Tasa de desempleo (%)", r.laboral.tasa_desempleo * 100, 1], ["Informalidad (%)", r.laboral.informalidad * 100, 1],
+      ["Ingreso laboral medio real (S/ de 2019)", r.laboral.ing_lab_medio_real, 0],
+    ];
+  }
+  function tabla(r) {
+    const cols = [["Base 2019", base], ["Escenario", r]]; if (ref && ref !== r) cols.splice(1, 0, ["Referencia", ref]);
+    const sel = $("preset").value, ofi = D.oficial[sel];
+    let h = `<thead><tr><th>Indicador</th>${cols.map(c => `<th>${c[0]}</th>`).join("")}${ofi ? "<th>Oficial INEI</th>" : ""}</tr></thead><tbody>`;
+    const fb = filas(base);
+    filas(r).forEach((f, i) => {
+      h += `<tr><td>${f[0]}</td>${cols.map(c => `<td>${num(filas(c[1])[i][1], f[2])}</td>`).join("")}`;
+      if (ofi) {
+        const o = { 0: ofi.pobreza, 1: ofi.pobreza_extrema, 2: ofi.pobreza_urbana, 3: ofi.pobreza_rural }[i];
+        h += `<td>${o == null ? "" : num(o * 100, 1)}</td>`;
+      }
+      h += "</tr>";
+    });
+    $("tabla").innerHTML = h + "</tbody>";
+    let csv = "indicador;" + cols.map(c => c[0]).join(";") + "\n";
+    filas(r).forEach((f, i) => { csv += f[0] + ";" + cols.map(c => filas(c[1])[i][1].toFixed(4)).join(";") + "\n"; });
+    csv += "\ndecil;gic_escenario\n" + r.gic.map((g, i) => `${i + 1};${(g * 100).toFixed(2)}`).join("\n") + "\n";
+    $("csv").value = csv;
+  }
+
+  // ---- acciones --------------------------------------------------------------------------
+  let ocupado = false;
+  function correr() {
+    if (!modelo || ocupado) return;
+    ocupado = true; $("simular").disabled = true; $("estado").textContent = "Simulando…";
+    const t0 = performance.now();
+    setTimeout(() => {
+      try {
+        const esc = escenarioDesdeControles();
+        const r = modelo.simular(esc);
+        render(r, esc);
+        $("estado").textContent = `${num(D.meta.n_personas)} personas · ${num(D.meta.n_hogares)} hogares · ${Math.round(performance.now() - t0)} ms`;
+      } catch (e) { $("estado").textContent = "Error: " + e.message; }
+      ocupado = false; $("simular").disabled = false; $("fijar").disabled = false;
+    }, 20);
+  }
+  $("simular").addEventListener("click", correr);
+  $("cargar").addEventListener("click", () => { controlesDesdeEscenario(preset($("preset").value)); correr(); });
+  $("reset").addEventListener("click", () => { $("preset").value = "base"; controlesDesdeEscenario(preset("base")); correr(); });
+  $("fijar").addEventListener("click", () => { ref = actual; $("sub-tabla").textContent = "Base 2019, referencia fijada y escenario actual"; if (actual) render(actual); });
+  $("copiar").addEventListener("click", async () => {
+    const txt = $("csv").value;
+    try { await navigator.clipboard.writeText(txt); $("copiar").textContent = "Copiado"; }
+    catch (e) { $("csv").hidden = false; $("csv").select(); $("copiar").textContent = "Seleccione y copie el texto"; }
+    setTimeout(() => { $("copiar").textContent = "Copiar tabla como CSV"; }, 2000);
+  });
+  $("ver-csv").addEventListener("click", () => { $("csv").hidden = !$("csv").hidden; });
+
+  // ---- carga de datos --------------------------------------------------------------------
+  async function cargar() {
+    try {
+      let resp = await fetch("datos.json");                   // publicado sin comprimir (el servidor comprime en tránsito)
+      if (!resp.ok) resp = await fetch("datos.json.gz");          // copia local comprimida
+      if (!resp.ok) throw new Error("no se pudo descargar la base del modelo");
+      const buf = new Uint8Array(await resp.arrayBuffer());
+      let txt;
+      if (buf[0] === 0x1f && buf[1] === 0x8b) {              // gzip sin descomprimir por el servidor
+        if (typeof DecompressionStream !== "function") throw new Error("este navegador no soporta descompresión gzip");
+        const ds = new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+        txt = await new Response(ds).text();
+      } else {
+        txt = new TextDecoder("utf-8").decode(buf);           // el servidor ya lo descomprimió
+      }
+      D = JSON.parse(txt);
+      modelo = new MicroPEC.Modelo(D);
+      construirControles();
+      controlesDesdeEscenario(preset("base"));
+      base = modelo.simular({ ...D.escenario_base, passthrough: 0.25, elasticidad_gasto: 0.8 });
+      $("cargando").hidden = true; $("contenido").hidden = false;
+      render(base);
+      $("estado").textContent = `${num(D.meta.n_personas)} personas · ${num(D.meta.n_hogares)} hogares · base ENAHO ${D.meta.anio_base}`;
+      $("simular").disabled = false; $("fijar").disabled = false;
+    } catch (e) {
+      $("cargando").textContent = "No se pudo cargar la base del modelo: " + e.message;
+    }
+  }
+  cargar();
+})();
+</script>

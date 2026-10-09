@@ -1,0 +1,11 @@
+# microdatos y archivos pesados (se regeneran con el pipeline)
+data/raw/
+data/clean/
+gui/datos.json
+gui/datos.json.gz
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.*/settings.local.json
+output/backcast_detalle.json
