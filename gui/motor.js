@@ -1,4 +1,4 @@
-/* Motor de microsimulación (réplica en JavaScript de pipeline/micropec/simular.py).
+/* Motor de microsimulación (réplica en JavaScript de pipeline/tinkuy/simular.py).
  * Se usa en la interfaz (index.html) y en la prueba de equivalencia (pipeline/07_verificar_gui.py).
  * Funciona en el navegador y en cualquier intérprete JS (sin dependencias). */
 (function (global) {
@@ -199,5 +199,5 @@
       return res;
     }
   }
-  global.MicroPEC = { Modelo, gini, cuantiles, mediasDecil, NOLAB };
+  global.Tinkuy = { Modelo, gini, cuantiles, mediasDecil, NOLAB };
 })(typeof window !== "undefined" ? window : globalThis);

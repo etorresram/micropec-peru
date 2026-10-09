@@ -6,8 +6,8 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from micropec import config as C  # noqa: E402
-from micropec.simular import cargar_modelo, escenario_base  # noqa: E402
+from tinkuy import config as C  # noqa: E402
+from tinkuy.simular import cargar_modelo, escenario_base  # noqa: E402
 
 m = cargar_modelo()
 ins = json.load(open(C.MACRO / "insumos_observados.json"))

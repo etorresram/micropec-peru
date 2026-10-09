@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from micropec import config as C  # noqa: E402
-from micropec.simular import cargar_modelo, escenario_base  # noqa: E402
+from tinkuy import config as C  # noqa: E402
+from tinkuy.simular import cargar_modelo, escenario_base  # noqa: E402
 
 matplotlib.use("Agg")
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 9, "axes.spines.top": False, "axes.spines.right": False,
@@ -115,8 +115,8 @@ fig.savefig(C.OUT / "figuras" / "backcast.png", dpi=200)
 fig.savefig(C.OUT / "figuras" / "backcast.pdf")
 
 # GIC 2019-2024
-from micropec.preparar import cargar  # noqa: E402
-from micropec.indicadores import medias_por_decil  # noqa: E402
+from tinkuy.preparar import cargar  # noqa: E402
+from tinkuy.indicadores import medias_por_decil  # noqa: E402
 r24 = m.simular(escenario(2024), detalle=True)
 p24, h24 = cargar(2024)
 ipc24 = ins["anios"]["2024"]["ipc"]

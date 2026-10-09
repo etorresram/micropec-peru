@@ -102,7 +102,7 @@ def construir(anio: int) -> tuple[pd.DataFrame, pd.DataFrame]:
         [ocu == 1, ocu.isin([2, 3]), ocu == 4],
         [np.where(formal == True, 4, 3), 2, 1], default=0)   # noqa: E712
     if anio == 2024:
-        # sin `ocupinf` oficial: se usa la formalidad imputada (micropec/informalidad.py)
+        # sin `ocupinf` oficial: se usa la formalidad imputada (tinkuy/informalidad.py)
         imp = pd.read_parquet(C.CLEAN / "informalidad_imputada_2024.parquet")
         t = t.merge(imp, how="left", on=KEYS + ["codperso"])
         t.loc[ocu == 1, "estado"] = np.where(t.loc[ocu == 1, "formal_imp"] == 1, 4, 3)

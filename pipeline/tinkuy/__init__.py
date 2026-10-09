@@ -1,4 +1,4 @@
-"""micropec: modelo de microsimulación macro-micro de pobreza para el Perú (ENAHO).
+"""tinkuy: modelo de microsimulación macro-micro de pobreza para el Perú (ENAHO).
 
 Módulos:
 - config:      rutas, mapeos de sectores, educación y grupos de edad.
