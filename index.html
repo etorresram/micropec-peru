@@ -69,18 +69,26 @@ h1, h2, h3, .num, .hero-num { font-family: var(--display); }
 /* cuerpo */
 .wrap { max-width: 1280px; margin: 0 auto; padding-inline: 20px; }
 main.wrap { padding-block: 22px 56px; }
+.grid > * { min-width: 0; }
 .grid { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-aside { position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 8px); overflow-y: auto; padding-right: 2px; }
+aside { position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 8px); overflow-y: auto; padding: 4px; }
 @media (max-width: 860px) { aside { position: static; max-height: none; } }
 details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); margin-bottom: 8px; }
-details > summary { cursor: pointer; padding: 10px 12px; font-weight: 600; font-family: var(--display); font-size: 14px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details > summary { cursor: pointer; padding: 12px 14px; gap: 12px; font-weight: 600; font-family: var(--display); font-size: 14px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
 details > summary::-webkit-details-marker { display: none; }
-details > summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 16px; }
+details > summary::after { flex: 0 0 auto; content: "+"; color: var(--muted); font-weight: 400; font-size: 16px; }
 details[open] > summary::after { content: "–"; }
-details > div { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
+/* Un mismo margen interior para encabezados, selectores, notas y controles. */
+.panel-body { padding: 12px 14px 16px; border-top: 1px solid var(--line); }
+.panel-body > label { display: block; font-size: 13px; color: var(--fg-2); }
+.panel-body > select { display: block; width: 100%; max-width: 100%; margin-top: 6px; }
+.panel-body > .nota { margin-top: 8px; }
+.panel-body > .ctl:first-child { margin-top: 0; }
+#g-macro { margin-top: 14px; }
+#g-macro > .ctl:first-child { margin-top: 0; }
 .ctl { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 4px 10px; align-items: center; margin-top: 10px; }
-.ctl label { grid-column: 1; font-size: 13px; color: var(--fg-2); }
+.ctl label { grid-column: 1; min-width: 0; overflow-wrap: break-word; font-size: 13px; color: var(--fg-2); }
 .ctl input[type=range] { grid-column: 1 / 2; width: 100%; accent-color: var(--accent); margin: 0; }
 .ctl input[type=number] { grid-column: 2; grid-row: 1 / 3; align-self: center; width: 72px; font: 600 13px var(--display); padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
 .fila { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
@@ -91,12 +99,14 @@ button:hover:not(:disabled) { border-color: var(--fg-2); } button.primario:hover
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: .5; cursor: default; }
 select { font: 600 13px var(--display); padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); min-width: 0; flex: 1 1 180px; }
-.nota { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.nota { overflow-wrap: anywhere; font-size: 12px; color: var(--muted); margin: 6px 0 0; }
 
 .bloque { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; min-width: 0; }
 .bloque h2 { font-size: 17px; margin: 0 0 2px; font-weight: 700; letter-spacing: -0.01em; }
 .bloque .sub { color: var(--fg-2); font-size: 13px; margin: 0 0 10px; }
-.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 18px; }
+.bloque svg { display: block; max-width: 100%; }
+.bloque > button { margin-top: 10px; max-width: 100%; }
 svg text { font-family: var(--sans); fill: var(--fg-2); font-size: 11.5px; }
 svg text.val { font-family: var(--display); font-weight: 600; fill: var(--fg); font-size: 11.5px; }
 svg .eje { stroke: var(--line); stroke-width: 1; }
@@ -110,7 +120,13 @@ th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--lin
 th:first-child, td:first-child { text-align: left; }
 th { font-family: var(--display); font-weight: 600; color: var(--fg-2); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
 td.esc { font-weight: 600; color: var(--fg); }
-.tabla-scroll { overflow-x: auto; }
+.tabla-scroll { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }
+th:not(:first-child), td:not(:first-child) { white-space: nowrap; }
+@media (max-width: 480px) {
+  .wrap { padding-inline: 14px; }
+  .bloque { padding: 14px; }
+  th:first-child, td:first-child { min-width: 150px; }
+}
 .tooltip { position: fixed; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; display: none; z-index: 10; font-variant-numeric: tabular-nums; max-width: 260px; }
 textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--fg); padding: 8px; }
 .cargando { padding: 40px 0; color: var(--fg-2); }
@@ -155,14 +171,17 @@ textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monosp
         <button id="reset">Volver a 2019</button>
       </div>
       <details open><summary>Economía</summary>
+        <div class="panel-body">
         <label for="modo">Modo de ingresos laborales</label>
         <select id="modo"><option value="agregado">Ingreso medio + PBI sectorial</option><option value="solo_pbi">Solo PBI sectorial</option><option value="sectorial">Ingresos por sector</option><option value="sector_area">Ingresos por sector y área</option></select>
-        <p class="nota" id="modo-nota"></p><div id="g-macro"></div></details>
-      <details><summary>Mercado laboral</summary><div id="g-laboral"></div></details>
-      <details><summary>Precios y líneas de pobreza</summary><div id="g-precios"></div></details>
-      <details><summary>Ingresos no laborales</summary><div id="g-nolab"></div></details>
-      <details><summary>Políticas: bonos y retiros AFP</summary><div id="g-politica"></div></details>
-      <details><summary>Supuestos del modelo</summary><div id="g-supuestos"></div></details>
+        <p class="nota" id="modo-nota"></p><div id="g-macro"></div>
+        </div>
+      </details>
+      <details><summary>Mercado laboral</summary><div class="panel-body" id="g-laboral"></div></details>
+      <details><summary>Precios y líneas de pobreza</summary><div class="panel-body" id="g-precios"></div></details>
+      <details><summary>Ingresos no laborales</summary><div class="panel-body" id="g-nolab"></div></details>
+      <details><summary>Políticas: bonos y retiros AFP</summary><div class="panel-body" id="g-politica"></div></details>
+      <details><summary>Supuestos del modelo</summary><div class="panel-body" id="g-supuestos"></div></details>
       <p class="nota">Las variaciones son acumuladas respecto de 2019. Los años históricos reconstruyen escenarios con agregados contemporáneos de BCRP y ENAHO. No son pronósticos fuera de muestra. Las líneas regionales y la composición demográfica se conservan al editar un escenario histórico.</p>
     </aside>
 
