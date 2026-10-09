@@ -91,7 +91,6 @@ adultos sin estado laboral observado se asumen inactivos. La informalidad imputa
 2024 no tiene validación temporal propia. No hay intervalos de confianza ni efectos
 de equilibrio general. La selección de receptores históricos se mantiene fija.
 
-## Desarrollo
+## Autor
 
-Las pruebas automáticas verifican propiedades concretas; no sustituyen la evaluación
-metodológica. Autor: Eric Torres Ramírez (etorresram@gmail.com).
+Eric Torres Ramírez (etorresram@gmail.com).
