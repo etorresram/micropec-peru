@@ -1,1 +1,1 @@
-Microsimulación de Pobreza — interfaz publicada con GitHub Pages. Generada con gui/build_pages.sh desde la rama main.
+Interfaz de microsimulación, versión 0.2.0. Construida desde una revisión verificada.
