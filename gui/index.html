@@ -1,90 +1,130 @@
 <meta charset="utf-8">
 <title>Microsimulación de Pobreza</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;600&display=swap">
 <style>
-/* Layout: panel de controles a la izquierda (fijo en escritorio), resultados a la derecha; una columna en móvil. */
+/* Layout: banda superior oscura con el titular y la cifra principal; debajo, panel de controles fijo a la izquierda y resultados a la derecha; una columna en móvil.
+   Color: página fría clara, banda azul marino, acento coral para el escenario, azul para la base 2019, verde azulado para la referencia. Paleta validada (CVD ΔE ≥ 14 en ambos modos). */
 :root {
-  --bg: #f7f6f3; --surface: #ffffff; --surface-2: #efede8; --fg: #141413; --fg-2: #52514e; --muted: #8a8882;
-  --line: #dddbd4; --accent: #1c5cab; --accent-soft: #e4eefb;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
-  --good: #0ca30c; --critical: #d03b3b;
-  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+  --bg: #eef2f6; --surface: #ffffff; --surface-2: #e3e9f0; --fg: #0e1b2b; --fg-2: #44556a; --muted: #7b8a9b;
+  --line: #d6dee8; --grid: #e6ebf1;
+  --band: #0f2a4a; --band-2: #163b66; --band-fg: #ffffff; --band-fg-2: #b9c8dc; --band-line: rgba(255,255,255,0.14);
+  --accent: #e4572e; --accent-soft: #fde9e2;
+  --s1: #2458a8; --s2: #e4572e; --s3: #17a398;
+  --s1-soft: #dbe6f7; --s2-soft: #fde3da;
+  --good: #1b8a3f; --critical: #c83a2f; --good-soft: #dff3e6; --critical-soft: #fbe2df;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif; --sans: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #161614; --surface: #1f1f1d; --surface-2: #2a2a27; --fg: #f3f2ee; --fg-2: #c3c2b7; --muted: #8e8d86;
-  --line: #3a3936; --accent: #5598e7; --accent-soft: #1e2d44;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; color-scheme: dark; } }
+  --bg: #0c141d; --surface: #16212e; --surface-2: #1f2d3d; --fg: #eef3f8; --fg-2: #b4c2d2; --muted: #7f8ea0;
+  --line: #2a3a4d; --grid: #223142;
+  --band: #0a1a2e; --band-2: #112a4a; --band-fg: #ffffff; --band-fg-2: #a9bbd0; --band-line: rgba(255,255,255,0.12);
+  --accent: #ea5d31; --accent-soft: #3a2219;
+  --s1: #5d8fe0; --s2: #ea5d31; --s3: #1fa093;
+  --s1-soft: #1c2f4d; --s2-soft: #40231a;
+  --good: #3ec46a; --critical: #ff6b5e; --good-soft: #163524; --critical-soft: #3f1f1c; color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #161614; --surface: #1f1f1d; --surface-2: #2a2a27; --fg: #f3f2ee; --fg-2: #c3c2b7; --muted: #8e8d86;
-  --line: #3a3936; --accent: #5598e7; --accent-soft: #1e2d44;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; color-scheme: dark; }
+  --bg: #0c141d; --surface: #16212e; --surface-2: #1f2d3d; --fg: #eef3f8; --fg-2: #b4c2d2; --muted: #7f8ea0;
+  --line: #2a3a4d; --grid: #223142;
+  --band: #0a1a2e; --band-2: #112a4a; --band-fg: #ffffff; --band-fg-2: #a9bbd0; --band-line: rgba(255,255,255,0.12);
+  --accent: #ea5d31; --accent-soft: #3a2219;
+  --s1: #5d8fe0; --s2: #ea5d31; --s3: #1fa093;
+  --s1-soft: #1c2f4d; --s2-soft: #40231a;
+  --good: #3ec46a; --critical: #ff6b5e; --good-soft: #163524; --critical-soft: #3f1f1c; color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.45; }
-.wrap { max-width: 1240px; margin: 0 auto; padding-block: 20px 48px; padding-inline: 16px; }
-header.top { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 18px; }
-header.top h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-header.top p { margin: 0; color: var(--fg-2); max-width: 70ch; }
-.estado { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: auto; }
-.grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; align-items: start; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.45; }
+h1, h2, h3, .num, .hero-num { font-family: var(--display); }
+
+/* banda superior */
+.band { background: linear-gradient(135deg, var(--band) 0%, var(--band-2) 100%); color: var(--band-fg); }
+.band .wrap { padding-block: 26px 28px; }
+.band-top { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; justify-content: space-between; }
+.band h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.band .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--band-fg-2); margin: 0 0 4px; }
+.band p.lead { margin: 6px 0 0; color: var(--band-fg-2); max-width: 64ch; }
+.estado { font-size: 12px; color: var(--band-fg-2); font-variant-numeric: tabular-nums; }
+.hero { display: grid; grid-template-columns: minmax(260px, 1.4fr) repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 22px; align-items: start; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr 1fr; } .hero .main { grid-column: 1 / -1; } }
+@media (max-width: 480px) { .hero { grid-template-columns: 1fr; } }
+.hero .tile { background: rgba(255,255,255,0.06); border: 1px solid var(--band-line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.hero .main { background: rgba(255,255,255,0.09); padding: 18px 20px; }
+.hero .lbl { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--band-fg-2); }
+.hero .num { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; line-height: 1.1; color: var(--band-fg); }
+.hero .main .hero-num { font-size: 72px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-top: 6px; color: var(--band-fg); }
+@media (max-width: 480px) { .hero .main .hero-num { font-size: 56px; } }
+.hero .delta { margin-top: 8px; font-size: 13px; color: var(--band-fg-2); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.chip.up { background: var(--critical); color: #fff; } .chip.down { background: var(--good); color: #fff; } .chip.flat { background: rgba(255,255,255,0.14); color: var(--band-fg); }
+.meter { position: relative; height: 12px; border-radius: 6px; background: rgba(255,255,255,0.14); margin-top: 14px; overflow: visible; }
+.meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--s2); }
+.meter .mark { position: absolute; top: -5px; width: 3px; height: 22px; border-radius: 2px; background: var(--band-fg); }
+.meter-lbl { display: flex; justify-content: space-between; font-size: 11px; color: var(--band-fg-2); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.meter-lbl b { color: var(--band-fg); font-weight: 600; }
+
+/* cuerpo */
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 20px; }
+main.wrap { padding-block: 22px 56px; }
+.grid { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-aside { position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 8px); overflow-y: auto; padding-right: 4px; }
+aside { position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 8px); overflow-y: auto; padding-right: 2px; }
 @media (max-width: 860px) { aside { position: static; max-height: none; } }
-details { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-bottom: 8px; }
-details > summary { cursor: pointer; padding: 9px 12px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
-details > summary::after { content: "+"; color: var(--muted); font-weight: 400; }
+details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); margin-bottom: 8px; }
+details > summary { cursor: pointer; padding: 10px 12px; font-weight: 600; font-family: var(--display); font-size: 14px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 16px; }
 details[open] > summary::after { content: "–"; }
 details > div { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
-.ctl { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 6px 10px; align-items: center; margin-top: 8px; }
-.ctl label { font-size: 13px; color: var(--fg-2); }
+.ctl { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 4px 10px; align-items: center; margin-top: 10px; }
+.ctl label { grid-column: 1; font-size: 13px; color: var(--fg-2); }
 .ctl input[type=range] { grid-column: 1 / 2; width: 100%; accent-color: var(--accent); margin: 0; }
-.ctl input[type=number] { width: 72px; font: 12px var(--mono); padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--fg); text-align: right; }
-.ctl .val { grid-column: 2; grid-row: 1 / 3; align-self: center; }
-.ctl label { grid-column: 1; }
+.ctl input[type=number] { grid-column: 2; grid-row: 1 / 3; align-self: center; width: 72px; font: 600 13px var(--display); padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
 .fila { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-button { font: 500 13px var(--sans); padding: 7px 12px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button { font: 600 13px var(--display); padding: 8px 13px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
 button.primario { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:hover:not(:disabled) { border-color: var(--fg-2); } button.primario:hover:not(:disabled) { filter: brightness(1.06); }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: .5; cursor: default; }
-select { font: 13px var(--sans); padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--fg); }
+select { font: 600 13px var(--display); padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--fg); min-width: 0; flex: 1 1 180px; }
 .nota { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
-.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; min-width: 0; }
-.tile .lbl { font-size: 12px; color: var(--fg-2); }
-.tile .num { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin-top: 2px; }
-.tile.hero-main { grid-column: span 2; } .tile.hero-main .num { font-size: 44px; white-space: nowrap; }
-@media (max-width: 480px) { .tile.hero-main { grid-column: span 1; } .tile.hero-main .num { font-size: 36px; } }
-.tile .delta { font-size: 12px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
-.delta .up { color: var(--critical); } .delta .down { color: var(--good); }
-.bloque { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; margin-bottom: 16px; min-width: 0; }
-.bloque h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
-.bloque .sub { color: var(--fg-2); font-size: 12px; margin: 0 0 10px; }
-.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-svg text { font-family: var(--sans); fill: var(--fg-2); font-size: 11px; }
+
+.bloque { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; min-width: 0; }
+.bloque h2 { font-size: 17px; margin: 0 0 2px; font-weight: 700; letter-spacing: -0.01em; }
+.bloque .sub { color: var(--fg-2); font-size: 13px; margin: 0 0 10px; }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+svg text { font-family: var(--sans); fill: var(--fg-2); font-size: 11.5px; }
+svg text.val { font-family: var(--display); font-weight: 600; fill: var(--fg); font-size: 11.5px; }
 svg .eje { stroke: var(--line); stroke-width: 1; }
-svg .grilla { stroke: var(--line); stroke-width: 1; }
-.leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--fg-2); margin: 4px 0 6px; }
-.leyenda span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+svg .grilla { stroke: var(--grid); stroke-width: 1; }
+svg .cero { stroke: var(--fg-2); stroke-width: 1.5; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--fg-2); margin: 4px 0 8px; }
+.leyenda span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.leyenda span.dot::before { border-radius: 50%; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
 th:first-child, td:first-child { text-align: left; }
-th { font-weight: 600; color: var(--fg-2); font-size: 12px; }
+th { font-family: var(--display); font-weight: 600; color: var(--fg-2); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+td.esc { font-weight: 600; color: var(--fg); }
 .tabla-scroll { overflow-x: auto; }
-.tooltip { position: fixed; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 4px; display: none; z-index: 10; font-variant-numeric: tabular-nums; }
-textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); color: var(--fg); padding: 8px; }
+.tooltip { position: fixed; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; display: none; z-index: 10; font-variant-numeric: tabular-nums; max-width: 260px; }
+textarea { width: 100%; min-height: 90px; font: 12px ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--fg); padding: 8px; }
 .cargando { padding: 40px 0; color: var(--fg-2); }
-.pill { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 500; }
-@media (prefers-reduced-motion: no-preference) { .num { transition: color .2s; } }
+@media (prefers-reduced-motion: no-preference) { .meter .fill, .meter .mark { transition: width .35s ease, left .35s ease; } }
 </style>
 
-<div class="wrap">
-  <header class="top">
-    <div>
-      <h1>Microsimulación de Pobreza</h1>
-      <p>Microsimulación macro-micro de pobreza y distribución del ingreso para el Perú. Año base ENAHO 2019; mueva los supuestos macro, laborales y de política y vea el efecto sobre los hogares en segundos.</p>
+<header class="band">
+  <div class="wrap">
+    <div class="band-top">
+      <div>
+        <p class="kicker">Modelo macro-micro · Perú · ENAHO 2019</p>
+        <h1>Microsimulación de Pobreza</h1>
+        <p class="lead">Mueva los supuestos macroeconómicos, laborales y de política y vea el efecto sobre la pobreza y la distribución del ingreso de los hogares en segundos.</p>
+      </div>
+      <div class="estado" id="estado">Cargando microdatos…</div>
     </div>
-    <div class="estado" id="estado">Cargando microdatos…</div>
-  </header>
+    <div class="hero" id="hero" hidden></div>
+  </div>
+</header>
 
+<main class="wrap">
   <div class="grid">
     <aside>
       <div class="fila">
@@ -114,10 +154,9 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
       <p class="nota">Las variaciones son acumuladas respecto de 2019. Los escenarios “observado” cargan los insumos reales de cada año (BCRP, INEI) y permiten comparar con la cifra oficial.</p>
     </aside>
 
-    <main id="res">
+    <section id="res">
       <div class="cargando" id="cargando">Descargando la base del modelo (12 MB, unos segundos)…</div>
       <div id="contenido" hidden>
-        <div class="hero" id="hero"></div>
         <div class="dos">
           <div class="bloque">
             <h2>Curva de incidencia del crecimiento</h2>
@@ -126,9 +165,14 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
           </div>
           <div class="bloque">
             <h2>Pobreza por dominio geográfico</h2>
-            <p class="sub">Incidencia (% de la población), 2019 vs. escenario</p>
+            <p class="sub">Incidencia (% de la población): de 2019 al escenario</p>
             <div id="dominios"></div>
           </div>
+        </div>
+        <div class="bloque">
+          <h2>Pobreza por departamento</h2>
+          <p class="sub">Incidencia (% de la población) en el escenario, ordenado de mayor a menor; el punto marca 2019</p>
+          <div id="dptos"></div>
         </div>
         <div class="bloque">
           <h2>Resumen de indicadores</h2>
@@ -137,16 +181,11 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
           <div class="fila"><button id="copiar">Copiar tabla como CSV</button><button id="ver-csv">Mostrar CSV</button></div>
           <textarea id="csv" hidden aria-label="CSV de resultados"></textarea>
         </div>
-        <div class="bloque">
-          <h2>Pobreza por departamento</h2>
-          <p class="sub">Incidencia (% de la población) en el escenario; ordenado de mayor a menor</p>
-          <div id="dptos"></div>
-        </div>
         <p class="nota">Fuente: ENAHO 2019 (INEI), módulos 200, 300, 500 y Sumaria; PBI sectorial, IPC y remesas del BCRP. El motor en JavaScript reproduce el de Python del repositorio (prueba de equivalencia incluida). Resultados ilustrativos de un modelo de muestra.</p>
       </div>
-    </main>
+    </section>
   </div>
-</div>
+</main>
 <div class="tooltip" id="tt"></div>
 
 <script src="motor.js"></script>
@@ -203,7 +242,7 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
       const cont = $("g-" + g);
       for (const [id, lbl, min, max, step, val] of lista) {
         const div = document.createElement("div"); div.className = "ctl";
-        div.innerHTML = `<label for="r-${id}">${lbl}</label><input class="val" id="n-${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${lbl}"><input id="r-${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;
+        div.innerHTML = `<label for="r-${id}">${lbl}</label><input id="n-${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${lbl}"><input id="r-${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;
         cont.appendChild(div);
         const r = div.querySelector("input[type=range]"), n = div.querySelector("input[type=number]");
         r.addEventListener("input", () => { n.value = r.value; });
@@ -216,7 +255,6 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
 
   // ---- escenario <-> controles --------------------------------------------------------------
   function escenarioDesdeControles() {
-    const lb = D.params.laboral_base;
     const sh = SECT.map((_, i) => get("sh" + i)); const ssum = sh.reduce((a, b) => a + b, 0);
     const ipc = 1 + get("ipc") / 100;
     return {
@@ -265,104 +303,130 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
   const num = (v, d = 0) => v.toLocaleString("es-PE", { minimumFractionDigits: d, maximumFractionDigits: d });
   const pp = v => (v > 0 ? "+" : "") + (v * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " pp";
   const mill = v => num(v / 1e6, 2) + " M";
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  // ---- resultados ------------------------------------------------------------------------
-  function tile(lbl, val, delta, main) {
-    return `<div class="tile${main ? " hero-main" : ""}"><div class="lbl">${lbl}</div><div class="num">${val}</div><div class="delta">${delta}</div></div>`;
+  // ---- cifras principales (banda superior) ------------------------------------------------
+  function chip(d, fmt, peorSiSube = true) {
+    const txt = fmt(d), flat = !/[1-9]/.test(txt);   // nulo si el valor mostrado redondea a cero
+    const cls = flat ? "flat" : (d > 0) === peorSiSube ? "up" : "down";
+    const arrow = flat ? "=" : d > 0 ? "▲" : "▼";
+    return `<span class="chip ${cls}">${arrow} ${flat ? txt.replace(/^[+-]/, "") : txt}</span>`;
   }
-  function deltaTxt(a, b, fmt, peorSiSube = true) {
-    const d = a - b; const cls = d > 0 ? (peorSiSube ? "up" : "down") : (d < 0 ? (peorSiSube ? "down" : "up") : "");
-    return `<span class="${cls}">${fmt(d)}</span> vs. 2019`;
+  function tile(lbl, val, d, fmt, peorSiSube = true, extra = "") {
+    return `<div class="tile"><div class="lbl">${lbl}</div><div class="num">${val}</div><div class="delta">${chip(d, fmt, peorSiSube)} <span>vs. 2019</span>${extra}</div></div>`;
   }
-  function render(r, esc) {
-    actual = r;
+  function hero(r) {
     const sel = $("preset").value, ofi = D.oficial[sel];
-    $("hero").innerHTML =
-      tile("Pobreza monetaria", pct(r.pobreza), deltaTxt(r.pobreza, base.pobreza, pp) + (ofi ? ` · oficial INEI ${pct(ofi.pobreza)}` : ""), true) +
-      tile("Pobreza extrema", pct(r.pobreza_extrema), deltaTxt(r.pobreza_extrema, base.pobreza_extrema, pp) + (ofi ? ` · oficial ${pct(ofi.pobreza_extrema)}` : "")) +
-      tile("Personas en pobreza", mill(r.n_pobres), deltaTxt(r.n_pobres, base.n_pobres, v => (v > 0 ? "+" : "") + num(v / 1e6, 2) + " M")) +
-      tile("Coeficiente de Gini (gasto)", num(r.gini_gasto, 3), deltaTxt(r.gini_gasto, base.gini_gasto, v => (v > 0 ? "+" : "") + num(v, 3))) +
-      tile("Brecha de pobreza", pct(r.brecha), deltaTxt(r.brecha, base.brecha, pp)) +
-      tile("Ingreso laboral medio real", "S/ " + num(r.laboral.ing_lab_medio_real), deltaTxt(r.laboral.ing_lab_medio_real, base.laboral.ing_lab_medio_real, v => (v > 0 ? "+" : "") + num(v) + " S/ de 2019", false));
-    graficoGIC(r); graficoDominios(r); tabla(r); graficoDptos(r);
+    const maxM = 0.5, fw = Math.min(r.pobreza / maxM, 1) * 100, bm = Math.min(base.pobreza / maxM, 1) * 100;
+    const main = `<div class="tile main">
+      <div class="lbl">Pobreza monetaria · ${esc($("preset").selectedOptions[0].textContent)}</div>
+      <div class="hero-num">${pct(r.pobreza)}</div>
+      <div class="delta">${chip(r.pobreza - base.pobreza, pp)} <span>vs. 2019 (${pct(base.pobreza)})</span>${ofi ? `<span>· oficial INEI <b style="color:var(--band-fg)">${pct(ofi.pobreza)}</b></span>` : ""}</div>
+      <div class="meter" role="img" aria-label="Pobreza: escenario ${pct(r.pobreza)}, base 2019 ${pct(base.pobreza)}"><div class="fill" style="width:${fw}%"></div><div class="mark" style="left:calc(${bm}% - 1.5px)"></div></div>
+      <div class="meter-lbl"><span>0 %</span><span><b>|</b> marca 2019</span><span>50 %</span></div>
+    </div>`;
+    $("hero").innerHTML = main +
+      tile("Pobreza extrema", pct(r.pobreza_extrema), r.pobreza_extrema - base.pobreza_extrema, pp, true, ofi ? `<span>· oficial ${pct(ofi.pobreza_extrema)}</span>` : "") +
+      tile("Personas en pobreza", mill(r.n_pobres), r.n_pobres - base.n_pobres, v => (v > 0 ? "+" : "") + num(v / 1e6, 2) + " M") +
+      tile("Gini del gasto", num(r.gini_gasto, 3), r.gini_gasto - base.gini_gasto, v => (v > 0 ? "+" : "") + num(v, 3)) +
+      tile("Ingreso laboral real", "S/ " + num(r.laboral.ing_lab_medio_real), r.laboral.ing_lab_medio_real - base.laboral.ing_lab_medio_real, v => (v > 0 ? "+" : "") + num(v) + " S/", false);
+    $("hero").hidden = false;
+  }
+  function render(r) {
+    actual = r;
+    hero(r); graficoGIC(r); graficoDominios(r); graficoDptos(r); tabla(r);
   }
 
   // ---- gráficos SVG ----------------------------------------------------------------------
   const tt = $("tt");
   function hover(el, txt) {
-    el.addEventListener("mousemove", ev => { tt.style.display = "block"; tt.textContent = txt; tt.style.left = (ev.clientX + 12) + "px"; tt.style.top = (ev.clientY + 12) + "px"; });
+    el.addEventListener("mousemove", ev => { tt.style.display = "block"; tt.textContent = txt; tt.style.left = Math.min(ev.clientX + 12, window.innerWidth - 270) + "px"; tt.style.top = (ev.clientY + 12) + "px"; });
     el.addEventListener("mouseleave", () => { tt.style.display = "none"; });
   }
   function graficoGIC(r) {
-    const W = 520, H = 230, ml = 44, mr = 10, mt = 12, mb = 34;
+    const W = 540, H = 250, ml = 46, mr = 12, mt = 16, mb = 38;
     const series = [{ k: "Escenario", v: r.gic, c: "var(--s2)" }];
-    if (ref && ref !== r) series.unshift({ k: "Referencia", v: ref.gic, c: "var(--s1)" });
+    if (ref && ref !== r) series.unshift({ k: "Referencia", v: ref.gic, c: "var(--s3)" });
     const all = series.flatMap(s => s.v).concat([0]);
     const lo = Math.min(...all) * 100, hi = Math.max(...all) * 100;
-    const pad = Math.max((hi - lo) * 0.15, 1), y0 = Math.floor((lo - pad) / 5) * 5, y1 = Math.ceil((hi + pad) / 5) * 5;
+    const pad = Math.max((hi - lo) * 0.2, 1.5), y0 = Math.floor((lo - pad) / 5) * 5, y1 = Math.ceil((hi + pad) / 5) * 5;
     const sy = v => mt + (H - mt - mb) * (1 - (v - y0) / (y1 - y0));
-    const bw = (W - ml - mr) / 10, n = series.length, barw = Math.min(22, (bw - 8) / n);
+    const bw = (W - ml - mr) / 10, n = series.length, barw = Math.min(24, (bw - 10) / n);
     let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Curva de incidencia del crecimiento por decil">`;
-    for (let g = y0; g <= y1; g += 5) s += `<line class="grilla" x1="${ml}" x2="${W - mr}" y1="${sy(g)}" y2="${sy(g)}"/><text x="${ml - 6}" y="${sy(g) + 4}" text-anchor="end">${g}%</text>`;
-    s += `<line class="eje" x1="${ml}" x2="${W - mr}" y1="${sy(0)}" y2="${sy(0)}" style="stroke:var(--fg-2)"/>`;
+    for (let g = y0; g <= y1; g += 5) s += `<line class="grilla" x1="${ml}" x2="${W - mr}" y1="${sy(g)}" y2="${sy(g)}"/><text x="${ml - 7}" y="${sy(g) + 4}" text-anchor="end">${g}%</text>`;
+    s += `<line class="cero" x1="${ml}" x2="${W - mr}" y1="${sy(0)}" y2="${sy(0)}"/>`;
     const barras = [];
     for (let d = 0; d < 10; d++) {
       series.forEach((se, j) => {
         const v = se.v[d] * 100, x = ml + bw * d + (bw - barw * n - 2 * (n - 1)) / 2 + j * (barw + 2);
         const yA = sy(Math.max(v, 0)), yB = sy(Math.min(v, 0));
-        barras.push({ x, y: yA, h: Math.max(yB - yA, 0.5), c: se.c, txt: `${se.k} · decil ${d + 1}: ${v.toFixed(1)} %` });
+        barras.push({ x, y: yA, h: Math.max(yB - yA, 1), v, c: se.c, pos: v >= 0, txt: `${se.k} · decil ${d + 1}: ${v.toFixed(1)} %`, last: j === n - 1, d });
       });
-      s += `<text x="${ml + bw * d + bw / 2}" y="${H - mb + 16}" text-anchor="middle">D${d + 1}</text>`;
+      s += `<text x="${ml + bw * d + bw / 2}" y="${H - mb + 17}" text-anchor="middle">D${d + 1}</text>`;
     }
-    s += `<text x="${(ml + W - mr) / 2}" y="${H - 4}" text-anchor="middle">Decil de gasto per cápita (2019)</text>`;
-    barras.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${barw}" height="${b.h}" rx="3" fill="${b.c}"/>`; });
+    s += `<text x="${(ml + W - mr) / 2}" y="${H - 5}" text-anchor="middle">Decil de gasto per cápita (2019) · D1 = más pobre</text>`;
+    barras.forEach((b, i) => {
+      const rr = Math.min(4, b.h / 2);
+      // extremo redondeado en el lado del dato, recto en la línea de cero
+      const path = b.pos
+        ? `M${b.x},${b.y + b.h} V${b.y + rr} a${rr},${rr} 0 0 1 ${rr},-${rr} h${barw - 2 * rr} a${rr},${rr} 0 0 1 ${rr},${rr} V${b.y + b.h} Z`
+        : `M${b.x},${b.y} V${b.y + b.h - rr} a${rr},${rr} 0 0 0 ${rr},${rr} h${barw - 2 * rr} a${rr},${rr} 0 0 0 ${rr},-${rr} V${b.y} Z`;
+      s += `<path data-i="${i}" d="${path}" fill="${b.c}"/>`;
+    });
+    // etiquetas directas solo en los extremos (D1 y D10) de la serie principal
+    barras.filter(b => b.last && (b.d === 0 || b.d === 9)).forEach(b => {
+      const y = b.pos ? b.y - 5 : b.y + b.h + 13;
+      const v1 = Math.round(b.v * 10) / 10 || 0;
+      s += `<text class="val" x="${b.x + barw / 2}" y="${y}" text-anchor="middle">${(v1 > 0 ? "+" : "") + v1.toFixed(1)}%</text>`;
+    });
     s += "</svg>";
     const cont = $("gic");
-    cont.innerHTML = `<div class="leyenda">${series.map(se => `<span style="--c:${se.c}">${se.k}</span>`).join("")}</div>` + s;
-    cont.querySelectorAll("rect").forEach(rc => hover(rc, barras[+rc.dataset.i].txt));
+    cont.innerHTML = (series.length > 1 ? `<div class="leyenda">${series.map(se => `<span style="--c:${se.c}">${se.k}</span>`).join("")}</div>` : "") + s;
+    cont.querySelectorAll("path[data-i]").forEach(p => hover(p, barras[+p.dataset.i].txt));
   }
   function graficoDominios(r) {
-    const W = 520, H = 230, ml = 118, mr = 44, mt = 6, mb = 24;
-    const keys = Object.keys(DOM), rowh = (H - mt - mb) / keys.length, barw = Math.min(9, rowh / 2 - 2);
+    // gráfico de mancuernas: punto 2019 -> punto escenario, unidos por una línea del color de la dirección
+    const W = 540, H = 250, ml = 124, mr = 48, mt = 8, mb = 26;
+    const keys = Object.keys(DOM), rowh = (H - mt - mb) / keys.length;
     const maxv = Math.max(...keys.map(k => Math.max(base.por_dominio[k], r.por_dominio[k]))) * 100;
-    const x1 = Math.ceil(maxv / 10) * 10, sx = v => ml + (W - ml - mr) * v / x1;
-    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Pobreza por dominio">`;
-    for (let g = 0; g <= x1; g += 10) s += `<line class="grilla" y1="${mt}" y2="${H - mb}" x1="${sx(g)}" x2="${sx(g)}"/><text x="${sx(g)}" y="${H - mb + 14}" text-anchor="middle">${g}%</text>`;
-    const barras = [];
+    const x1 = Math.ceil((maxv + 3) / 10) * 10, sx = v => ml + (W - ml - mr) * v / x1;
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Pobreza por dominio, 2019 y escenario">`;
+    for (let g = 0; g <= x1; g += 10) s += `<line class="grilla" y1="${mt}" y2="${H - mb}" x1="${sx(g)}" x2="${sx(g)}"/><text x="${sx(g)}" y="${H - mb + 15}" text-anchor="middle">${g}%</text>`;
+    const items = [];
     keys.forEach((k, i) => {
-      const yc = mt + rowh * i + rowh / 2;
-      s += `<text x="${ml - 8}" y="${yc + 4}" text-anchor="end">${DOM[k]}</text>`;
-      [[base.por_dominio[k], "var(--s1)", "2019"], [r.por_dominio[k], "var(--s2)", "Escenario"]].forEach(([v, c, lbl], j) => {
-        const y = yc - barw - 1 + j * (barw + 2);
-        barras.push({ x: ml, y, w: Math.max(sx(v * 100) - ml, 0.5), h: barw, c, txt: `${DOM[k]} · ${lbl}: ${(v * 100).toFixed(1)} %` });
-      });
-      s += `<text x="${sx(Math.max(r.por_dominio[k], base.por_dominio[k]) * 100) + 4}" y="${yc + barw + 2}">${(r.por_dominio[k] * 100).toFixed(1)}</text>`;
+      const yc = mt + rowh * i + rowh / 2, a = base.por_dominio[k] * 100, b = r.por_dominio[k] * 100;
+      s += `<text x="${ml - 10}" y="${yc + 4}" text-anchor="end">${DOM[k]}</text>`;
+      s += `<line x1="${sx(a)}" x2="${sx(b)}" y1="${yc}" y2="${yc}" stroke="${b > a + 0.05 ? "var(--critical)" : b < a - 0.05 ? "var(--good)" : "var(--line)"}" stroke-width="4" stroke-linecap="round"/>`;
+      s += `<circle cx="${sx(a)}" cy="${yc}" r="5.5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>`;
+      s += `<circle cx="${sx(b)}" cy="${yc}" r="7" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"/>`;
+      s += `<text class="val" x="${sx(Math.max(a, b)) + 11}" y="${yc + 4}">${b.toFixed(1)}</text>`;
+      items.push({ x: ml, y: yc - rowh / 2, w: W - ml - mr, h: rowh, txt: `${DOM[k]}: 2019 ${a.toFixed(1)} % → escenario ${b.toFixed(1)} % (${(b - a > 0 ? "+" : "") + (b - a).toFixed(1)} pp)` });
     });
-    barras.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="2" fill="${b.c}"/>`; });
+    items.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="transparent"/>`; });
     s += "</svg>";
     const cont = $("dominios");
-    cont.innerHTML = `<div class="leyenda"><span style="--c:var(--s1)">2019</span><span style="--c:var(--s2)">Escenario</span></div>` + s;
-    cont.querySelectorAll("rect").forEach(rc => hover(rc, barras[+rc.dataset.i].txt));
+    cont.innerHTML = `<div class="leyenda"><span class="dot" style="--c:var(--s1)">2019</span><span class="dot" style="--c:var(--s2)">Escenario</span><span style="--c:var(--critical)">sube</span><span style="--c:var(--good)">baja</span></div>` + s;
+    cont.querySelectorAll("rect[data-i]").forEach(rc => hover(rc, items[+rc.dataset.i].txt));
   }
   function graficoDptos(r) {
     const keys = Object.keys(r.por_dpto).sort((a, b) => r.por_dpto[b] - r.por_dpto[a]);
-    const W = 1000, rowh = 18, ml = 110, mr = 50, mt = 4, mb = 22, H = mt + mb + rowh * keys.length;
-    const x1 = Math.ceil(Math.max(...keys.map(k => Math.max(r.por_dpto[k], base.por_dpto[k]))) * 100 / 10) * 10, sx = v => ml + (W - ml - mr) * v / x1;
+    const W = 1000, rowh = 22, ml = 118, mr = 56, mt = 6, mb = 24, H = mt + mb + rowh * keys.length, barh = 14;
+    const x1 = Math.ceil((Math.max(...keys.map(k => Math.max(r.por_dpto[k], base.por_dpto[k]))) * 100 + 4) / 10) * 10, sx = v => ml + (W - ml - mr) * v / x1;
     let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:100%" role="img" aria-label="Pobreza por departamento">`;
-    for (let g = 0; g <= x1; g += 10) s += `<line class="grilla" y1="${mt}" y2="${H - mb}" x1="${sx(g)}" x2="${sx(g)}"/><text x="${sx(g)}" y="${H - mb + 14}" text-anchor="middle">${g}%</text>`;
+    for (let g = 0; g <= x1; g += 10) s += `<line class="grilla" y1="${mt}" y2="${H - mb}" x1="${sx(g)}" x2="${sx(g)}"/><text x="${sx(g)}" y="${H - mb + 15}" text-anchor="middle">${g}%</text>`;
     const items = [];
     keys.forEach((k, i) => {
-      const y = mt + rowh * i + 3, v = r.por_dpto[k], b = base.por_dpto[k];
-      s += `<text x="${ml - 8}" y="${y + 10}" text-anchor="end">${DPTO[k] || k}</text>`;
-      items.push({ x: ml, y, w: Math.max(sx(v * 100) - ml, 0.5), txt: `${DPTO[k]}: ${(v * 100).toFixed(1)} % (2019: ${(b * 100).toFixed(1)} %)` });
-      s += `<text x="${sx(Math.max(v, b) * 100) + 8}" y="${y + 10}">${(v * 100).toFixed(1)}</text>`;
+      const y = mt + rowh * i + (rowh - barh) / 2, v = r.por_dpto[k] * 100, b = base.por_dpto[k] * 100, w = Math.max(sx(v) - ml, 1), rr = Math.min(4, w / 2);
+      s += `<text x="${ml - 10}" y="${y + barh / 2 + 4}" text-anchor="end">${DPTO[k] || k}</text>`;
+      s += `<path data-i="${i}" d="M${ml},${y} h${w - rr} a${rr},${rr} 0 0 1 ${rr},${rr} v${barh - 2 * rr} a${rr},${rr} 0 0 1 -${rr},${rr} h-${w - rr} Z" fill="var(--s2)"/>`;
+      s += `<circle cx="${sx(b)}" cy="${y + barh / 2}" r="4.5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" pointer-events="none"/>`;
+      s += `<text class="val" x="${sx(Math.max(v, b)) + 9}" y="${y + barh / 2 + 4}">${v.toFixed(1)}</text>`;
+      items.push(`${DPTO[k]}: escenario ${v.toFixed(1)} % · 2019 ${b.toFixed(1)} % (${(v - b > 0 ? "+" : "") + (v - b).toFixed(1)} pp)`);
     });
-    items.forEach((b, i) => { s += `<rect data-i="${i}" x="${b.x}" y="${b.y}" width="${b.w}" height="12" rx="2" fill="var(--s2)"/>`; });
-    keys.forEach((k, i) => { const y = mt + rowh * i + 3; s += `<circle cx="${sx(base.por_dpto[k] * 100)}" cy="${y + 6}" r="3.5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>`; });
     s += "</svg>";
     const cont = $("dptos");
-    cont.innerHTML = `<div class="leyenda"><span style="--c:var(--s2)">Escenario (barra)</span><span style="--c:var(--s1)">2019 (punto)</span></div>` + s;
-    cont.querySelectorAll("rect").forEach(rc => hover(rc, items[+rc.dataset.i].txt));
+    cont.innerHTML = `<div class="leyenda"><span style="--c:var(--s2)">Escenario (barra)</span><span class="dot" style="--c:var(--s1)">2019 (punto)</span></div>` + s;
+    cont.querySelectorAll("path[data-i]").forEach(p => hover(p, items[+p.dataset.i]));
   }
 
   // ---- tabla y CSV -----------------------------------------------------------------------
@@ -381,9 +445,8 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
     const cols = [["Base 2019", base], ["Escenario", r]]; if (ref && ref !== r) cols.splice(1, 0, ["Referencia", ref]);
     const sel = $("preset").value, ofi = D.oficial[sel];
     let h = `<thead><tr><th>Indicador</th>${cols.map(c => `<th>${c[0]}</th>`).join("")}${ofi ? "<th>Oficial INEI</th>" : ""}</tr></thead><tbody>`;
-    const fb = filas(base);
     filas(r).forEach((f, i) => {
-      h += `<tr><td>${f[0]}</td>${cols.map(c => `<td>${num(filas(c[1])[i][1], f[2])}</td>`).join("")}`;
+      h += `<tr><td>${f[0]}</td>${cols.map(c => `<td class="${c[0] === "Escenario" ? "esc" : ""}">${num(filas(c[1])[i][1], f[2])}</td>`).join("")}`;
       if (ofi) {
         const o = { 0: ofi.pobreza, 1: ofi.pobreza_extrema, 2: ofi.pobreza_urbana, 3: ofi.pobreza_rural }[i];
         h += `<td>${o == null ? "" : num(o * 100, 1)}</td>`;
@@ -405,9 +468,8 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
     const t0 = performance.now();
     setTimeout(() => {
       try {
-        const esc = escenarioDesdeControles();
-        const r = modelo.simular(esc);
-        render(r, esc);
+        const r = modelo.simular(escenarioDesdeControles());
+        render(r);
         $("estado").textContent = `${num(D.meta.n_personas)} personas · ${num(D.meta.n_hogares)} hogares · ${Math.round(performance.now() - t0)} ms`;
       } catch (e) { $("estado").textContent = "Error: " + e.message; }
       ocupado = false; $("simular").disabled = false; $("fijar").disabled = false;
