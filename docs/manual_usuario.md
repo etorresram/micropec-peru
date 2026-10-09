@@ -1,7 +1,6 @@
 # MicroPEC Perú — manual de usuario de la interfaz
 
-La interfaz (https://etorresram.github.io/microsim-pobreza/; copia en GitHub Pages:
-https://etorresram.github.io/micropec-peru/) corre íntegramente en el navegador: carga una vez la base del modelo
+La interfaz (https://etorresram.github.io/micropec-peru/) corre íntegramente en el navegador: carga una vez la base del modelo
 (12 MB) y cada escenario se calcula en alrededor de un segundo. No envía datos a
 ningún servidor.
 
