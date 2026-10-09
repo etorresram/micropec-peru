@@ -1,6 +1,6 @@
-# Tinkuy — microsimulación macro-micro de pobreza
+# Microsimulación de Pobreza — microsimulación macro-micro de pobreza
 
-*Tinkuy*, en quechua, es el encuentro de dos corrientes. Este es un modelo de microsimulación que combina los microdatos de la ENAHO con series
+Modelo de microsimulación que combina los microdatos de la ENAHO con series
 macroeconómicas y del mercado laboral para proyectar la pobreza y la distribución
 del ingreso en el Perú, construir escenarios contrafactuales y evaluar el impacto
 distributivo de choques y políticas. Es una **muestra de trabajo** preparada para la
@@ -11,9 +11,9 @@ tareas de los términos de referencia.
 | Tarea de los TdR | Dónde está |
 |---|---|
 | Preparar la base (microdatos + series macro, con documentación) | `pipeline/00_descargar.py`, `01_preparar.py`, `02_macro.py`; `docs/nota_metodologica.pdf` §2 |
-| Estimar el modelo base (elección ocupacional, ecuaciones de ingreso) | `pipeline/03_estimar.py`, `tinkuy/estimar.py` |
-| Módulo de simulación (población, estados laborales, ingresos, no laborales) | `tinkuy/simular.py` (Python) y `gui/motor.js` (JavaScript, idéntico) |
-| Módulo de resultados y escenarios (pobreza, desigualdad, curvas de incidencia) | `tinkuy/indicadores.py`; interfaz |
+| Estimar el modelo base (elección ocupacional, ecuaciones de ingreso) | `pipeline/03_estimar.py`, `microsim/estimar.py` |
+| Módulo de simulación (población, estados laborales, ingresos, no laborales) | `microsim/simular.py` (Python) y `gui/motor.js` (JavaScript, idéntico) |
+| Módulo de resultados y escenarios (pobreza, desigualdad, curvas de incidencia) | `microsim/indicadores.py`; interfaz |
 | Validación: backcasting y sensibilidad | `pipeline/04_validar.py`; `output/tablas/`, `output/figuras/` |
 | Interfaz gráfica para usuarios no técnicos | `gui/index.html` (corre en el navegador, sin servidor) |
 | Código reproducible y documentado, nota metodológica, manual | `run_all.sh`, `docs/` |
@@ -37,7 +37,7 @@ Los pasos, uno por uno (todos en `pipeline/`):
 | Paso | Script | Produce |
 |---|---|---|
 | 0 | `00_descargar.py` | `data/raw/<año>/` módulos 200, 300, 500 y Sumaria (INEI) |
-| 0b | `tinkuy/informalidad.py` | formalidad imputada para 2024 (el INEI no publicó `ocupinf`) |
+| 0b | `microsim/informalidad.py` | formalidad imputada para 2024 (el INEI no publicó `ocupinf`) |
 | 1 | `01_preparar.py` | `data/clean/personas_<año>.parquet`, `hogares_<año>.parquet` |
 | 2 | `02_macro.py` | `data/macro/bcrp_anual.csv`, `insumos_observados.json` |
 | 3 | `03_estimar.py` | `data/clean/base_modelo_2019.parquet`, `output/resumen_estimacion.json` |
@@ -47,13 +47,13 @@ Los pasos, uno por uno (todos en `pipeline/`):
 
 Para usar la interfaz localmente: `cd gui && python3 -m http.server 8000` y abrir
 `http://localhost:8000/`. La versión publicada está en
-https://etorresram.github.io/tinkuy/ (GitHub Pages, rama `gh-pages`, que se
+https://etorresram.github.io/microsim-pobreza/ (GitHub Pages, rama `gh-pages`, que se
 regenera con `gui/build_pages.sh`).
 
 ## Estructura
 
 ```
-pipeline/tinkuy/   paquete: config, preparar, estimar, simular, indicadores, macro, informalidad
+pipeline/microsim/   paquete: config, preparar, estimar, simular, indicadores, macro, informalidad
 pipeline/0X_*.py     scripts del pipeline, numerados en orden de ejecución
 gui/                 interfaz (index.html + motor.js + datos.json.gz)
 docs/                nota metodológica (LaTeX/PDF) y manual de usuario
@@ -64,7 +64,7 @@ data/                raw (INEI, no versionado), clean (parquet), macro (BCRP)
 ## Escalar a otros países
 
 El motor no contiene nada específico del Perú: trabaja sobre dos tablas
-(`personas`, `hogares`) con nombres de columna fijos (`tinkuy/preparar.py` los
+(`personas`, `hogares`) con nombres de columna fijos (`microsim/preparar.py` los
 documenta) y sobre un diccionario de insumos macro. Para otro país de la base
 armonizada del BID basta escribir el equivalente de `preparar.py` y de la tabla de
 correspondencia sector-PBI de `config.py`; estimación, simulación, validación e

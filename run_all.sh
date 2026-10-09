@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 if [ ! -d .venv ]; then python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt; fi
 PY=.venv/bin/python
 $PY pipeline/00_descargar.py
-$PY -c "import sys; sys.path.insert(0,'pipeline'); from tinkuy.informalidad import imputar; imputar()"
+$PY -c "import sys; sys.path.insert(0,'pipeline'); from microsim.informalidad import imputar; imputar()"
 $PY pipeline/01_preparar.py
 $PY pipeline/02_macro.py
 $PY pipeline/03_estimar.py

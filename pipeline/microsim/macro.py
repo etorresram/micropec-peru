@@ -26,7 +26,7 @@ from . import config as C
 API = "https://estadisticas.bcrp.gob.pe/estadisticas/series/api/{codigo}/json/{ini}/{fin}/esp"
 
 # Informalidad 2024: el INEI no incluyó `ocupinf` en la ENAHO 2024; la formalidad
-# se imputa persona a persona con tinkuy/informalidad.py (logit entrenado en 2023).
+# se imputa persona a persona con microsim/informalidad.py (logit entrenado en 2023).
 
 
 def _serie(codigo: str, ini: str, fin: str) -> pd.Series:

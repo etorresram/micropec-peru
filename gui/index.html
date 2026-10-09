@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Tinkuy</title>
+<title>Microsimulación de Pobreza</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: panel de controles a la izquierda (fijo en escritorio), resultados a la derecha; una columna en móvil. */
@@ -79,7 +79,7 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>Tinkuy</h1>
+      <h1>Microsimulación de Pobreza</h1>
       <p>Microsimulación macro-micro de pobreza y distribución del ingreso para el Perú. Año base ENAHO 2019; mueva los supuestos macro, laborales y de política y vea el efecto sobre los hogares en segundos.</p>
     </div>
     <div class="estado" id="estado">Cargando microdatos…</div>
@@ -441,7 +441,7 @@ textarea { width: 100%; min-height: 90px; font: 12px var(--mono); border: 1px so
         txt = new TextDecoder("utf-8").decode(buf);           // el servidor ya lo descomprimió
       }
       D = JSON.parse(txt);
-      modelo = new Tinkuy.Modelo(D);
+      modelo = new MicroSim.Modelo(D);
       construirControles();
       controlesDesdeEscenario(preset("base"));
       base = modelo.simular({ ...D.escenario_base, passthrough: 0.25, elasticidad_gasto: 0.8 });

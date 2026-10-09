@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tinkuy import macro  # noqa: E402
-from tinkuy.preparar import cargar  # noqa: E402
+from microsim import macro  # noqa: E402
+from microsim.preparar import cargar  # noqa: E402
 
 df = macro.descargar_bcrp()
 print(df.round(3).to_string())

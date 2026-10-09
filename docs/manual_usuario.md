@@ -1,6 +1,6 @@
-# Tinkuy — manual de usuario de la interfaz
+# Microsimulación de Pobreza — manual de usuario de la interfaz
 
-La interfaz (https://etorresram.github.io/tinkuy/) corre íntegramente en el navegador: carga una vez la base del modelo
+La interfaz (https://etorresram.github.io/microsim-pobreza/) corre íntegramente en el navegador: carga una vez la base del modelo
 (12 MB) y cada escenario se calcula en alrededor de un segundo. No envía datos a
 ningún servidor.
 

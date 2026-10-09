@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tinkuy import config as C  # noqa: E402
-from tinkuy.simular import NOLAB, cargar_modelo, escenario_base  # noqa: E402
+from microsim import config as C  # noqa: E402
+from microsim.simular import NOLAB, cargar_modelo, escenario_base  # noqa: E402
 
 m = cargar_modelo()
 q, h = m.q, m.h

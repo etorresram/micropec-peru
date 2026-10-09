@@ -4,9 +4,9 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tinkuy import config as C  # noqa: E402
-from tinkuy.estimar import guardar  # noqa: E402
-from tinkuy.preparar import cargar  # noqa: E402
+from microsim import config as C  # noqa: E402
+from microsim.estimar import guardar  # noqa: E402
+from microsim.preparar import cargar  # noqa: E402
 
 t0 = time.time()
 p, h = cargar(C.ANIO_BASE)

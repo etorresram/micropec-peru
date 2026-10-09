@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from tinkuy import config as C  # noqa: E402
-from tinkuy.simular import NOLAB, Modelo  # noqa: E402
+from microsim import config as C  # noqa: E402
+from microsim.simular import NOLAB, Modelo  # noqa: E402
 
 D = json.load(open(C.GUI / "datos.json"))
 P, H = D["personas"], D["hogares"]
@@ -39,7 +39,7 @@ ObjC.import('Foundation');
 const txt = $.NSString.stringWithContentsOfFileEncodingError('{C.GUI / "datos.json"}', $.NSUTF8StringEncoding, null).js;
 const D = JSON.parse(txt);
 {js}
-const m = new Tinkuy.Modelo(D);
+const m = new MicroSim.Modelo(D);
 const r = m.simular({json.dumps(esc)});
 JSON.stringify(r);
 """
